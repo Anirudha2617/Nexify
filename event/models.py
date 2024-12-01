@@ -1,11 +1,11 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from datetime import datetime
-from home.models import UserProfile
+from django.contrib.auth.models import User
 
 class Form(models.Model):
     created_by = models.ForeignKey(
-        'home.UserProfile',  # Use app_label.ModelName as a string
+        User,  # Use app_label.ModelName as a string
         on_delete=models.SET_DEFAULT,
         default=None,
         null=True,

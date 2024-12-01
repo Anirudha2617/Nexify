@@ -4,7 +4,7 @@ from .models import *
 
 @admin.register(Form)
 class FormAdmin(admin.ModelAdmin):
-    list_display = ('title', 'description')
+    list_display = ('title', 'description', 'created_by')
     search_fields = ('title',)
 
 @admin.register(Question)

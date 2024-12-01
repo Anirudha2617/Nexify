@@ -316,6 +316,7 @@ def delete_form(request, form_id):
         raise Http404("Form not found")
 
 
-def participants_details(request ):
+def participants_details(request):
     current_user = request.user
-    print(current_user.created_forms)
+    user_forms = current_user.created_forms.all()  # Access related forms
+    print("All Forms:", user_forms)
