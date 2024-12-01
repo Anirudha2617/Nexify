@@ -1,135 +1,97 @@
-/* Reset */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+    /* Black Theme Stylesheet */
 
-/* Body Styling */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: black; /* Set text color to black */
-    padding: 36px; /* Reduced padding by 10% */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Main Header */
-h1 {
-    font-size: 2.16em; /* Reduced font size by 10% */
-    font-weight: bold;
-    margin-bottom: 31.5px; /* Reduced margin by 10% */
-}
-
-/* Form List Container */
-ul {
-    list-style-type: none;
-    width: 100%;
-    max-width: 700px;
-    padding: 0;
-    margin-bottom: 27px; /* Reduced margin by 10% */
-}
-
-li {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 18px; /* Reduced padding by 10% */
-    margin-bottom: 13.5px; /* Reduced margin by 10% */
-    box-shadow: 0px 3.6px 10.8px rgba(0, 0, 0, 0.08); /* Reduced shadow to match height shrink */
-    font-size: 1.05em; /* Reduced font size by 5% */
-    display: flex;
-    flex-direction: column;
-    color: black; /* Set text color to black */
-}
-
-li a:first-child {
-    font-weight: 600;
-    font-size: 1.08em; /* Reduced font size by 10% */
-    text-decoration: none;
-    margin-bottom: 9px; /* Reduced margin by 10% */
-    color: black; /* Set link text color to black */
-}
-
-li a:first-child:hover {
-    text-decoration: underline;
-}
-
-/* Button Links Container */
-li .button-container {
-    display: flex;
-    gap: 9px; /* Reduced gap by 10% */
-    flex-wrap: wrap;
-}
-
-/* Standard Button Style */
-li a,
-form button[type="submit"] {
-    font-size: 0.855em; /* Reduced font size by 10% */
-    font-weight: bold;
-    border: none;
-    border-radius: 5px;
-    padding: 5.4px 12.6px; /* Reduced padding by 10% */
-    cursor: pointer;
-    text-decoration: none;
-    transition: transform 0.1s ease;
-    color: black; /* Set button text color to black */
-}
-
-li a:hover,
-form button[type="submit"]:hover {
-    transform: translateY(-0.9px); /* Reduced hover effect by 10% */
-}
-
-/* Delete Button */
-form button[type="submit"] {
-    color: black; /* Set delete button text color to black */
-}
-
-
-/* Create New Form Button */
-a[href="{% url 'create_form' %}"] {
-    display: inline-block;
-    padding: 10.8px 25.2px; /* Reduced padding by 10% */
-    font-size: 0.99em; /* Reduced font size by 10% */
-    font-weight: bold;
-    text-decoration: none;
-    border-radius: 8px;
-    margin-top: 22.5px; /* Reduced margin by 10% */
-    transition: box-shadow 0.2s ease;
-    color: black; /* Set link text color to black */
-}
-
-a[href="{% url 'create_form' %}"]:hover {
-    box-shadow: 0px 5.4px 10.8px rgba(0, 128, 55, 0.3); /* Reduced shadow by 10% */
-}
-
-/* Responsive Design */
-@media (max-width: 700px) {
     body {
-        padding: 18px; /* Reduced padding by 10% */
+        background-color: #121212; /* Dark background */
+        color: #ffffff; /* White text */
+        font-family: 'Arial', sans-serif;
+        margin: 0;
+        padding: 0;
     }
-
-    h1 {
-        font-size: 1.62em; /* Reduced font size by 10% */
+    
+    /* Section Styling */
+    .section_profile {
+        padding: 2rem;
+        background-color: #1e1e1e; /* Slightly lighter dark for contrast */
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+        max-width: 900px;
+        margin: 2rem auto;
     }
-
-    ul {
-        width: 100%;
+    
+    .section_profile h1 {
+        font-size: 2rem;
+        color: #00c853; /* Green accent for headings */
+        border-bottom: 2px solid #00c853;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
     }
-
-    li {
-        padding: 13.5px; /* Reduced padding by 10% */
+    
+    /* List Styling */
+    .section_profile ul {
+        list-style-type: none;
+        padding: 0;
     }
-
-    .button-container {
-        flex-direction: column;
-        width: 100%;
+    
+    .section_profile li {
+        margin: 0.8rem 0;
+        padding: 0.8rem;
+        background-color: #2a2a2a; /* Slightly lighter for list items */
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: transform 0.2s, background-color 0.3s;
     }
-
-    li a,
-    form button[type="submit"] {
-        width: 100%;
+    
+    .section_profile li:hover {
+        transform: scale(1.02); /* Slight zoom effect on hover */
+        background-color: #333333;
+    }
+    
+    /* Links */
+    .section_profile a {
+        color: #2196f3; /* Light blue for links */
+        text-decoration: none;
+        margin-right: 1rem;
+        font-weight: bold;
+    }
+    
+    .section_profile a:hover {
+        color: #00e5ff; /* Cyan on hover */
+    }
+    
+    /* Buttons */
+    button {
+        background-color: transparent;
+        border: 1px solid #ff5252; /* Red for danger buttons */
+        color: #ff5252;
+        padding: 0.4rem 0.8rem;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    button:hover {
+        background-color: #ff5252;
+        color: #121212;
+    }
+    
+    /* Create New Form Link */
+    .section_profile a[href*="create_form"] {
+        display: inline-block;
+        background-color: #6200ea; /* Purple button */
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
         text-align: center;
+        text-decoration: none;
+        font-weight: bold;
+        margin-top: 1rem;
     }
-}
+    
+    .section_profile a[href*="create_form"]:hover {
+        background-color: #7c4dff;
+        color: #e3f2fd;
+    }
+    

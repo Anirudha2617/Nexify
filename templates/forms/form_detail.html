@@ -106,77 +106,100 @@
 <link rel="stylesheet" href="{% static 'assets/css/forms/form_detail.css' %}">
 {% endblock stylesheet %}
 {% block pages %}
-
 <section class="section_profile">
     <div class="row" style="padding: 1rem;padding-top: 0;">
         <h1 style="color: white;">{{ form.title }}</h1>
         <p style="color: white;">{{ form.description }}</p>
     
-        <form method="post" action="" enctype="multipart/form-data" style="align-items: center;
-        justify-content: center;
-        display: flex;">
-            <div class = "form" >
-            {%if form.image%}
-                <img src={{form.image.url}} />
-            {%endif%}
-            {% csrf_token %}
+        <form method="post" action="" enctype="multipart/form-data" style="align-items: center; justify-content: center; display: flex;">
+            <div>
+                <input type="hidden" id="all_pages" name="all_pages" value='{{ pages|escapejs }}'>
+                <input type="hidden" id="present_page" name="present_page" value='{{ present_page }}'>
+                <Text style="color: white">Main</Text>
+                {% for page in pages %}
+                    <Text style="color: white">{{page}}</Text>
+                {% endfor %}
+            </div>    
+            <div class="form">
+                {% if form.image %}
+                    <img src="{{ form.image.url }}" />
+                {% endif %}
+                {% csrf_token %}
     
-            {% for question in questions %}
-                <div>
-                    <p>{{ question.text }}</p>
+                {% for question in questions %}
+                    <div class='question-id {{ question.question_type }}'>
+                        <p>{{ question.question_type }}</p>
     
-                    {% if question.question_type == 'TEXT' or question.question_type == 'SA' %}
-                        <!-- Short Answer and Text Input (Text Field) -->
-                        <input type="text" name="question_{{ question.id }}" required><br>
+                        {% if question.question_type == 'TEXT' or question.question_type == 'SA' %}
+                            <input type="text" name="question_{{ question.id }}" required><br>
     
-                    {% elif question.question_type == 'LA' %}
-                        <!-- Long Answer (Textarea) -->
-                        <textarea name="question_{{ question.id }}" rows="4" required></textarea><br>
+                        {% elif question.question_type == 'LA' %}
+                            <textarea name="question_{{ question.id }}" rows="4" required></textarea><br>
     
-                    {% elif question.question_type == 'MC' %}
-                        <!-- Multiple Choice (Radio Buttons) -->
-                        {% for choice in question.get_choices %}
-                            <label>
-                                <input type="radio" name="question_{{ question.id }}" value="{{ choice }}" required>
-                                {{ choice }}
-                            </label><br>
-                        {% endfor %}
-    
-                    {% elif question.question_type == 'DD' %}
-                        <!-- Dropdown (Select Option) -->
-                        <select name="question_{{ question.id }}" required>
-                            <option value="">Select an option</option>
+                        {% elif question.question_type == 'MC' %}
                             {% for choice in question.get_choices %}
-                                <option value="{{ choice }}">{{ choice }}</option>
+                                <label>
+                                    <input type="radio" name="question_{{ question.id }}" value="{{ choice }}" required>
+                                    {{ choice }}
+                                </label><br>
                             {% endfor %}
-                        </select><br>
     
-                    {% elif question.question_type == 'DT' %}
-                        <!-- Date and Time (Datetime Picker) -->
-                        <input type="datetime-local" name="question_{{ question.id }}" required><br>
-                    
+                        {% elif question.question_type == 'DD' %}
+                            <select name="question_{{ question.id }}" required>
+                                <option value="">Select an option</option>
+                                {% for choice in question.get_choices %}
+                                    <option value="{{ choice }}">{{ choice }}</option>
+                                {% endfor %}
+                            </select><br>
     
-                    {% elif question.question_type == 'IMG' %}
-                        <!-- Image Upload (File Input) -->
-                        <div class="image-container" > 
-                            <input type="file" name="question_{{ question.id }}" required><br>
-                        </div>
-                        
+                        {% elif question.question_type == 'DT' %}
+                            <input type="datetime-local" name="question_{{ question.id }}" required><br>
     
-                    {% else %}
-                        <p>Unknown question type.</p>
-                    {% endif %}
+                        {% elif question.question_type == 'IMG' %}
+                            <div class="image-container">
+                                <input type="file" name="question_{{ question.id }}" required><br>
+                            </div>
+                        {% else %}
+                            <p>Unknown question type.</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+    
+                <div class="button-container" style="margin: 0;padding: 0;">
+                    <button style="margin: 0;padding: 0;" type="button" onclick="OnSubmit()">Next</button>
                 </div>
-            {% endfor %}
-    
-            <div class="button-container" style="margin: 0;padding: 0;">
-                <button  style="margin: 0;padding: 0;" type="submit">Submit</button>
             </div>
-        </div>
         </form>
     
-        <a href="{% url 'event:view_forms' %}">View Form</a> <!-- Link to submissions view -->
+        <a href="{% url 'event:view_forms' %}">View Form</a>
     </div>
 </section>
+
+<script>
+    function OnSubmit(event) {
+        console.log("Entered");
+
+        // Locate the hidden input field by its id
+        let presentPageInput = document.getElementById('present_page');
+
+        // Parse its value and increment it
+        let present_page = parseInt(presentPageInput.value, 10) || 0; // Default to 0 if parsing fails
+        present_page += 1;
+
+        // Update the hidden input field with the new value
+        presentPageInput.value = present_page;
+
+        // Log the updated value to the console
+        console.log("Updated present_page:", present_page);
+
+        // Now submit the form manually
+        document.querySelector('form').submit();
+    }
+    window.onload = function() {
+        
+        console.log("Page no:")
+        console.log(document.getElementById('present_page').value); // Automatically add the first question
+    }
+</script>
 
 {% endblock pages %}
