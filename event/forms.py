@@ -1,5 +1,5 @@
 from django import forms
-from .models import Form, Question ,ExtraDetails,  Response
+from .models import Form, Question ,ExtraDetails,  Response, Registration_details
 from home.models import UserProfile
 from django.contrib.auth.models import User
 
@@ -46,36 +46,37 @@ class FormCreateExtraDetails(forms.ModelForm):
         self.fields['Model'].initial = Form.objects.get(id = formid)
 
 
-# class RegistrationDetailsForm(forms.ModelForm):
+class RegistrationDetailsForm(forms.ModelForm):
 
-#     class Meta:
-#         model = Registration_details
-#         fields = [
-#             'response', 
-#             'platform', 
-#             'participation_type', 
-#             'registration_start', 
-#             'registration_end', 
-#             'number_of_registration'
-#         ]
-#         widgets = {
-#             'response': forms.HiddenInput(),  # Hide the form field
-#             'registration_start': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-#             'registration_end': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-#             'number_of_registration': forms.NumberInput(attrs={'min': 1, 'step': 1}),
-#             'participation_type': forms.Select(attrs={'class': 'form-control'}),
-#         }
+    class Meta:
+        model = Registration_details
+        fields = [
+            'response', 
+            'platform', 
+            'participation_type',
+            'minimum_members',
+            'maximum_members',
+            'registration_start', 
+            'registration_end', 
+            'number_of_registration'
+        ]
+        widgets = {
+            'response': forms.HiddenInput(),  # Hide the form field
+            'registration_start': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'registration_end': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'number_of_registration': forms.NumberInput(attrs={'min': 1, 'step': 1}),
+            'participation_type': forms.Select(attrs={'class': 'form-control'}),
+        }
 
-#     def __init__(self, *args, **kwargs):
-#         # Optional: If you want to filter the available forms based on the user
-#         user = kwargs.pop('user', None)
-#         form_id = kwargs.pop('form_id', None)
-#         super().__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        # Optional: If you want to filter the available forms based on the user
+        response_id = kwargs.pop('response_id', None)
+        super().__init__(*args, **kwargs)
 
-#         if form_id:
-#             try:
-#                 # Fetch the form instance based on the provided form_id
-#                 form_instance = Response.objects.get(id=form_id)
-#                 self.fields['response'].initial = form_instance  # Set the initial value
-#             except Response.DoesNotExist:
-#                 raise forms.ValidationError(f"Form with ID {form_id} does not exist.")
+        if response_id:
+            try:
+                # Fetch the form instance based on the provided form_id
+                form_instance = Response.objects.get(id=response_id)
+                self.fields['response'].initial = form_instance  # Set the initial value
+            except Response.DoesNotExist:
+                raise forms.ValidationError(f"Form with ID {response_id} does not exist.")

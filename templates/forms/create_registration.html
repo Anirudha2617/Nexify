@@ -107,7 +107,7 @@ trans "Profile" %} {% endblock head_title %} {% block stylesheet %}
   <body>
     <h1>Create a Registration</h1>
     <form method="post">
-      {% csrf_token %} {{ reg_form.as_p }}
+      {% csrf_token %} {{ registration_form.as_p }}
       <button type="submit">Save</button>
     </form>
   </body>

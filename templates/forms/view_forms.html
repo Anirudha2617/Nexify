@@ -111,7 +111,7 @@
 
 <section class="section_profile">
     <div class="row" style="padding: 1rem;padding-top: 0;">
-        <h1 style="color: white;text-align: left;">What you want to host 👋</h1>
+        <h1 style="color: white;text-align: left;">What you want to host 🤟</h1>
 
     {% for form_type, forms in grouped_forms.items %}
         <section class="form-type-group {% if form_type == 'engaging' %}engaging-section{% else %}hiring-section{% endif %}">
@@ -140,6 +140,25 @@
         {% empty %}
 
     {% endfor %}
+
+        <section class="form-type-group {% if form_type == 'engaging' %}engaging-section{% else %}hiring-section{% endif %}">
+            <h2 class="form-type-title">Hosted Events</h2>
+            <ul class="form-list">
+                {% for response in all_events %}
+                    <li class="form-card">                        
+                        <div class="form-content">
+                            <a href="{% url 'event:view_response' response_id=response.id %}" class="form-title">{{ response.id|slice:":21"}}{% if response.title|length > 21 %}...{% endif %}</a>
+                            <p class="form-description">
+                                {{ response.description|slice:":30" }}{% if response.description|length > 30 %}...{% endif %}
+                            </p>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li>No forms available for this type</li>
+                {% endfor %}
+            </ul>
+        </section>
+
 
     <a href="{% url 'event:create_form' %}" class="add-form-button">+</a>
     </div>

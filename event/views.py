@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse , Http404
 from .models import Form, Question, Response, Answer
-from .forms import FormCreateForm, FormCreateExtraDetails    #, RegistrationDetailsForm
+from .forms import FormCreateForm, FormCreateExtraDetails , RegistrationDetailsForm
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Form, Question, Response, Answer ,ExtraQuestion, ExtraAnswer, ExtraResponse, ExtraDetails
 from django.forms import modelformset_factory
@@ -66,12 +66,30 @@ def view_forms(request):
     for form_type in form_types:
         forms = Form.objects.filter(form_type=form_type['form_type'])
         grouped_forms[form_type['form_type']] = forms  # Group forms by type
-    
+
+    all_events = Response.objects.filter(created_by = request.user)
+    all_titles = []
+    for events in all_events:
+        title = events.form.questions.filter(text = 'Title')
+        all_titles.append(title)
+    print(all_titles)
+
+    print(len(all_events))
     # Passing the grouped forms to the template
     context = {
-        'grouped_forms': grouped_forms
+        'grouped_forms': grouped_forms,
+        'all_events': all_events,
+        'all_titles': all_titles,
     }
     return render(request, 'forms/view_forms.html', context)
+
+
+def view_response(request, response_id):
+    response = get_object_or_404(Response, id=response_id)
+    print(response.extra_responses.all())
+    return HttpResponse("View response")
+
+
 
 def form_list(request):
     """View to list all forms."""
@@ -342,7 +360,7 @@ def fill_form(request, form_id):
         print(total_pages )
         print("submit form")
 
-        response = Response(form=form)
+        response = Response(form=form, created_by = request.user)
         print("Main response saving...")
         response.save()
         for question in questions:
@@ -363,7 +381,7 @@ def fill_form(request, form_id):
             return redirect('event:fill_extradetails', form_id=form_id, response_id=response.id)
         else:
             print("goto fill participants details")
-            return HttpResponse("Participants Details")
+            return redirect('event:registration_details', response_id=response.id)
     else:
         print("form went to render")
         return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})
@@ -432,7 +450,7 @@ def fill_extradetails(request, form_id, response_id):
             print(questions)
             return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': present_page})
         else:
-            return HttpResponse("Participants Details")
+            return redirect('event:registration_details', response_id=main_response.id)
 
 
     else:
@@ -440,17 +458,15 @@ def fill_extradetails(request, form_id, response_id):
         return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})    
 
 
+def registration_details(request ,response_id):
 
-def participants_details(request ,response_id):
-    pass
+    if request.method == 'POST':
+        registration_form = RegistrationDetailsForm(request.POST, response_id=response_id)
+        if registration_form.is_valid():
+            print("Registration form created successfully ....................................................................")
+            registration_form.save()
+            return redirect('event:view_forms')  # Redirect after saving
+    else:
+        registration_form = RegistrationDetailsForm( response_id = response_id)
 
-    # if request.method == 'POST':
-    #     reg_form = RegistrationDetailsForm(request.POST, user=request.user, form_id=response_id)
-    #     if reg_form.is_valid():
-    #         print("Registration form created successfully ....................................................................")
-    #         reg_form.save()
-    #         return redirect('event:view_forms')  # Redirect after saving
-    # else:
-    #     reg_form = RegistrationDetailsForm(user=request.user, form_id=response_id)
-
-    # return render(request, 'forms/create_registration.html', {'reg_form': reg_form})
+    return render(request, 'forms/create_registration.html', {'registration_form': registration_form})

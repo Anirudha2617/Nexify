@@ -18,7 +18,7 @@
         <ul>
             {% for form in forms %}
                 <li>
-                    <a href="{% url 'event:form_detail' form.id %}">{{ form.title }}</a> 
+                    <a href="{% url 'event:fill_form' form.id %}">{{ form.title }}</a> 
                     <a href="{% url 'event:form_responses' form.id %}">View Submissions</a> 
                     <a href="{% url 'event:add_questions' form.id %}">Add questions</a> 
                     <a href="{% url 'event:view_all_questions' form.id %}">View All Questions</a> 

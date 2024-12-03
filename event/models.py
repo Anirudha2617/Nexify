@@ -56,6 +56,14 @@ class Question(models.Model):
     
 class Response(models.Model):
     form = models.ForeignKey(Form, related_name='responses', on_delete=models.CASCADE)
+    created_by = models.ForeignKey(
+        User,  # Use app_label.ModelName as a string
+        on_delete=models.CASCADE,
+        default=None,
+        null=True,
+        blank=True,
+        related_name='created_by',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -163,20 +171,21 @@ class ExtraAnswer(models.Model):
 
 
 
-# class Registration_details(models.Model):
-#     INDIVIDUAL  = "individual"
-#     GROUP = "group"
+class Registration_details(models.Model):
+    INDIVIDUAL  = "individual"
+    GROUP = "group"
 
-#     PARTICIPATION_TYPE = [
-#         (INDIVIDUAL, 'Individual'),
-#         (GROUP, 'Group'),
-#     ]
+    PARTICIPATION_TYPE = [
+        (INDIVIDUAL, 'Individual'),
+        (GROUP, 'Group'),
+    ]
     
-#     response = models.ForeignKey(Response, related_name='registration_details', on_delete=models.CASCADE ,blank = True , null = True)
-#     platform = models.BooleanField()
-#     participation_type = models.CharField(choices=PARTICIPATION_TYPE, max_length=20, default=INDIVIDUAL)
-#     minimum_members = models.IntegerField(default=1)
-#     maximum_members = models.IntegerField(default=1)
-#     registration_start = models.DateTimeField(blank = False , null = False , default = datetime.now())
-#     registration_end = models.DateTimeField(blank = False , null = False )
-#     number_of_registration = models.IntegerField(blank=True, null=True)
+    response = models.ForeignKey(Response, related_name='registration_details', on_delete=models.CASCADE ,blank = True , null = True)
+
+    platform = models.BooleanField()
+    participation_type = models.CharField(choices=PARTICIPATION_TYPE, max_length=20, default=INDIVIDUAL)
+    minimum_members = models.IntegerField(default=1)
+    maximum_members = models.IntegerField(default=1)
+    registration_start = models.DateTimeField(blank = False , null = False , default = datetime.now())
+    registration_end = models.DateTimeField(blank = False , null = False )
+    number_of_registration = models.IntegerField(blank=True, null=True)
