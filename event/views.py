@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse , Http404
 from .models import Form, Question, Response, Answer
-from .forms import FormCreateForm, FormCreateExtraDetails
+from .forms import FormCreateForm, FormCreateExtraDetails    #, RegistrationDetailsForm
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Form, Question, Response, Answer ,ExtraQuestion, ExtraAnswer, ExtraResponse, ExtraDetails
 from django.forms import modelformset_factory
@@ -9,6 +9,7 @@ from collections import defaultdict
 from django.contrib.auth.models import User
 from home.models import UserProfile
 import json
+from django.contrib import messages
 
 def add_questions(request, form_id):
     form = get_object_or_404(Form, id=form_id)
@@ -56,7 +57,6 @@ def form_responses(request, form_id):
     return render(request, 'forms/form_responses.html', {'form': form, 'responses': responses})
 
 def view_forms(request):
-    participants_details(request )
     # Assuming the Form model has a 'form_type' attribute
     # Group forms by their 'form_type' attribute
     form_types = Form.objects.values('form_type').distinct()  # Get distinct form types
@@ -97,12 +97,13 @@ def create_form(request):
 
             # Redirect to the 'add_questions' view with the newly created form's ID        
         else:
-            print("some other error")
+            pass
+            #print("some other error")
         form = new_form
 
         # Determine the number of questions dynamically based on the question_text keys in the POST data
         num_questions = len([key for key in request.POST if key.startswith("question_text_")])
-        print(num_questions )
+        #print(num_questions )
         # Loop through each question
         for i in range(num_questions):
             question_text = request.POST.get(f'question_text_{i}')
@@ -122,17 +123,17 @@ def create_form(request):
                     question.choices = ','.join(choices)  # Store as a comma-separated string
                     question.save()  # Save the updated question with choices
 
-        print(request.POST.get('extrapage'))
+        #print(request.POST.get('extrapage'))
         # After saving all questions, redirect to the form detail page
         if request.POST.get('extrapage') == "true":
-            print("can proceed with new concepts...")
+            #print("can proceed with new concepts...")
             return redirect('event:create_extradetails', form_id=form.id)
         else:
-            return redirect('event:form_detail', form_id=form.id)
+            return redirect('event:participants_details', form_id=form.id)
     else:
-        print("Hii" , request.user.pk)
+        #print("Hii" , request.user.pk)
         form = FormCreateForm(user=request.user)
-        print("pass")
+        #print("pass")
         
     context ={
         'form': form ,
@@ -141,7 +142,7 @@ def create_form(request):
     return render(request, 'forms/create_form.html', context)
 
 def create_extradetails(request, form_id):
-    print("Entered event:create_extradetails")
+    #print("Entered event:create_extradetails")
     if request.method == 'POST':
         form = FormCreateExtraDetails( request.POST, request.FILES, mainformid = form_id)
 
@@ -150,12 +151,13 @@ def create_extradetails(request, form_id):
 
             # Redirect to the 'add_questions' view with the newly created form's ID        
         else:
-            print("some other error")
+            #print("some other error")
+            pass
         form = new_form
 
         # Determine the number of questions dynamically based on the question_text keys in the POST data
         num_questions = len([key for key in request.POST if key.startswith("question_text_")])
-        print(num_questions )
+        #print(num_questions )
         # Loop through each question
         for i in range(num_questions):
             question_text = request.POST.get(f'question_text_{i}')
@@ -175,19 +177,19 @@ def create_extradetails(request, form_id):
                     question.choices = ','.join(choices)  # Store as a comma-separated string
                     question.save()  # Save the updated question with choices
 
-        print(request.POST.get('extrapage'))
+        #print(request.POST.get('extrapage'))
         # After saving all questions, redirect to the form detail page
         if request.POST.get('extrapage') == "true":
-            print("can proceed with new concepts...")
+            #print("can proceed with new concepts...")
             form = form.Model
-            print("Form type:",type(form))
+            #print("Form type:",type(form))
             return redirect('event:create_extradetails' ,form_id = form.id)
 
         return redirect('event:form_detail', form_id=form_id)
     else:
-        print( "creating new forms..." )
+        #print( "creating new forms..." )
         form = FormCreateExtraDetails(mainformid=form_id)
-        print("New form created  ... ")
+        #print("New form created  ... ")
         
         
     context ={
@@ -201,31 +203,33 @@ def form_detail(request, form_id):
     extrapages = False
     present_page = request.POST.get('present_page')
     if present_page is None:
-        print("No response")
+        #print("No response")
         present_page = 0
     else:
         present_page = int(request.POST.get('present_page'))
-    print("Present_page:" , present_page)
+    #print("Present_page:" , present_page)
 
     if present_page > 1:
-        print("form_id" , form_id)
+        main_response = request.session.get('main_response')
+        print(main_response,"    Main response..................")
+        #print("form_id" , form_id)
         extrapages = True
         form = get_object_or_404(Form, id=form_id)
         form = form.extradetails.all()[present_page-1]
-        print("Old Extradetail object created")
+        #print("Old Extradetail object created")
         main_form = form.Model
-        print("Got the main form and their lists")
+        #print("Got the main form and their lists")
         extradetails = main_form.extradetails.all()
         pages =[]
         for i in extradetails:
             pages.append(i.title)
-        print(type(pages),pages)
-        print(present_page , type(present_page))
+        #print(type(pages),pages)
+        #print(present_page , type(present_page))
         form = extradetails[present_page-1]
         questions = form.questions.all()
             
     else:
-        print("Form object created.")
+        #print("Form object created.")
         form = get_object_or_404(Form, id=form_id)
         questions = form.questions.all()
         extradetails = form.extradetails.all()
@@ -242,12 +246,13 @@ def form_detail(request, form_id):
     
     if request.method == 'POST':
         if extrapages:
-            response = ExtraResponse(form = form)
+            response = ExtraResponse(form = form , response = main_response)
+            print("Added response")
             print("Extra response saving")
 
         else:
             response = Response(form=form)
-            print("Main response saving...")
+            #print("Main response saving...")
 
         response.save()
 
@@ -269,25 +274,28 @@ def form_detail(request, form_id):
                         ExtraAnswer.objects.create(response=response, question=question, answer_text=answer_text)
                     else:
                         Answer.objects.create(response=response, question=question, answer_text=answer_text)
-        print("Response submission done...")
-        print("Page length:", len(pages))
+        #print("Response submission done...")
+        #print("Page length:", len(pages))
         if (present_page < len(pages)):
+            
 
             if present_page == 1 :
-                print("form_id" , form_id)
+                #print("form_id" , form_id)
                 form = form.extradetails.all()[present_page-1]
                 questions = form.questions.all()
-                print(form ,form.id)
+                request.session['main_response'] = response 
+                #print(form ,form.id)
 
                 for question in questions:
                     if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
                         question.split_choices = question.choices.split(',') if question.choices else []
 
             if present_page > 1 :
-                print("form_id" , form_id)
+                request.session['main_response'] = main_response 
+                #print("form_id" , form_id)
                 form = main_form.extradetails.all()[present_page-1]
                 questions = form.questions.all()
-                print(form ,form.id)
+                #print(form ,form.id)
 
                 for question in questions:
                     if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
@@ -297,7 +305,7 @@ def form_detail(request, form_id):
                 
             return render(request, 'forms/form_detail.html', {'form': form, 'questions': questions , 'pages': json.dumps(pages) ,'present_page': present_page})
         else:
-            print("End of pages list")
+            #print("End of pages list")
             return redirect('event:view_forms')
         
 
@@ -316,7 +324,19 @@ def delete_form(request, form_id):
         raise Http404("Form not found")
 
 
-def participants_details(request):
-    current_user = request.user
-    user_forms = current_user.created_forms.all()  # Access related forms
-    print("All Forms:", user_forms)
+def participants_details(request ,response_id):
+    pass
+
+    # if request.method == 'POST':
+    #     reg_form = RegistrationDetailsForm(request.POST, user=request.user, form_id=response_id)
+    #     if reg_form.is_valid():
+    #         print("Registration form created successfully ....................................................................")
+    #         reg_form.save()
+    #         return redirect('event:view_forms')  # Redirect after saving
+    # else:
+    #     reg_form = RegistrationDetailsForm(user=request.user, form_id=response_id)
+
+    # return render(request, 'forms/create_registration.html', {'reg_form': reg_form})
+
+def participants_Details(request ,response_id, registration):
+    print(registration)

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Form, Question ,ExtraDetails
+from .models import Form, Question ,ExtraDetails,  Response
 from home.models import UserProfile
 from django.contrib.auth.models import User
 
@@ -44,3 +44,38 @@ class FormCreateExtraDetails(forms.ModelForm):
         
         # Set the initial value for created_by to the current user's UserProfile instance
         self.fields['Model'].initial = Form.objects.get(id = formid)
+
+
+# class RegistrationDetailsForm(forms.ModelForm):
+
+#     class Meta:
+#         model = Registration_details
+#         fields = [
+#             'response', 
+#             'platform', 
+#             'participation_type', 
+#             'registration_start', 
+#             'registration_end', 
+#             'number_of_registration'
+#         ]
+#         widgets = {
+#             'response': forms.HiddenInput(),  # Hide the form field
+#             'registration_start': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+#             'registration_end': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+#             'number_of_registration': forms.NumberInput(attrs={'min': 1, 'step': 1}),
+#             'participation_type': forms.Select(attrs={'class': 'form-control'}),
+#         }
+
+#     def __init__(self, *args, **kwargs):
+#         # Optional: If you want to filter the available forms based on the user
+#         user = kwargs.pop('user', None)
+#         form_id = kwargs.pop('form_id', None)
+#         super().__init__(*args, **kwargs)
+
+#         if form_id:
+#             try:
+#                 # Fetch the form instance based on the provided form_id
+#                 form_instance = Response.objects.get(id=form_id)
+#                 self.fields['response'].initial = form_instance  # Set the initial value
+#             except Response.DoesNotExist:
+#                 raise forms.ValidationError(f"Form with ID {form_id} does not exist.")

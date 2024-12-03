@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 class Form(models.Model):
     created_by = models.ForeignKey(
         User,  # Use app_label.ModelName as a string
-        on_delete=models.SET_DEFAULT,
+        on_delete=models.CASCADE,
         default=None,
         null=True,
         blank=True,
@@ -135,6 +135,7 @@ class ExtraQuestion(models.Model):
     
 class ExtraResponse(models.Model):
     form = models.ForeignKey(ExtraDetails, related_name='responses', on_delete=models.CASCADE)
+    response = models.ForeignKey(Response, related_name='extra_responses', on_delete=models.CASCADE ,blank = True , null = True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -159,3 +160,21 @@ class ExtraAnswer(models.Model):
                 datetime.strptime(self.answer_text, '%Y-%m-%d %H:%M:%S')
             except ValueError:
                 raise ValidationError("Invalid date and time format. Use 'YYYY-MM-DD HH:MM:SS' format.")
+
+
+
+# class Registration_details(models.Model):
+#     INDIVIDUAL  = "individual"
+#     GROUP = "group"
+
+#     PARTICIPATION_TYPE = [
+#         (INDIVIDUAL, 'Individual'),
+#         (GROUP, 'Group'),
+#     ]
+    
+#     response = models.ForeignKey(Response, related_name='registration_details', on_delete=models.CASCADE ,blank = True , null = True)
+#     platform = models.BooleanField()
+#     participation_type = models.CharField(choices=PARTICIPATION_TYPE, max_length=20, default=INDIVIDUAL)
+#     registration_start = models.DateTimeField(blank = False , null = False , default = datetime.now())
+#     registration_end = models.DateTimeField(blank = False , null = False )
+#     number_of_registration = models.IntegerField(blank=True, null=True)
