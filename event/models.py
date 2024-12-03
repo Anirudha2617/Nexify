@@ -175,6 +175,8 @@ class ExtraAnswer(models.Model):
 #     response = models.ForeignKey(Response, related_name='registration_details', on_delete=models.CASCADE ,blank = True , null = True)
 #     platform = models.BooleanField()
 #     participation_type = models.CharField(choices=PARTICIPATION_TYPE, max_length=20, default=INDIVIDUAL)
+#     minimum_members = models.IntegerField(default=1)
+#     maximum_members = models.IntegerField(default=1)
 #     registration_start = models.DateTimeField(blank = False , null = False , default = datetime.now())
 #     registration_end = models.DateTimeField(blank = False , null = False )
 #     number_of_registration = models.IntegerField(blank=True, null=True)

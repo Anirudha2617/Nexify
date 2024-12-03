@@ -40,7 +40,7 @@ def add_questions(request, form_id):
 
 
         # After saving all questions, redirect to the form detail page
-        return redirect('event:form_detail', form_id=form.id)
+        return redirect('event:fill_form', form_id=form.id)
 
     return render(request, 'apps/event/add_questionss.html', {'form': form})
 
@@ -185,7 +185,7 @@ def create_extradetails(request, form_id):
             #print("Form type:",type(form))
             return redirect('event:create_extradetails' ,form_id = form.id)
 
-        return redirect('event:form_detail', form_id=form_id)
+        return redirect('event:fill_form', form_id=form_id)
     else:
         #print( "creating new forms..." )
         form = FormCreateExtraDetails(mainformid=form_id)
@@ -199,120 +199,120 @@ def create_extradetails(request, form_id):
     return render(request, 'forms/create_extradetails.html', context)
     pass
 
-def form_detail(request, form_id):
-    extrapages = False
-    present_page = request.POST.get('present_page')
-    if present_page is None:
-        #print("No response")
-        present_page = 0
-    else:
-        present_page = int(request.POST.get('present_page'))
-    #print("Present_page:" , present_page)
+# def form_detail(request, form_id):
+#     extrapages = False
+#     present_page = request.POST.get('present_page')
+#     if present_page is None:
+#         #print("No response")
+#         present_page = 0
+#     else:
+#         present_page = int(request.POST.get('present_page'))
+#     #print("Present_page:" , present_page)
 
-    if present_page > 1:
-        main_response = request.session.get('main_response')
-        print(main_response,"    Main response..................")
-        #print("form_id" , form_id)
-        extrapages = True
-        form = get_object_or_404(Form, id=form_id)
-        form = form.extradetails.all()[present_page-1]
-        #print("Old Extradetail object created")
-        main_form = form.Model
-        #print("Got the main form and their lists")
-        extradetails = main_form.extradetails.all()
-        pages =[]
-        for i in extradetails:
-            pages.append(i.title)
-        #print(type(pages),pages)
-        #print(present_page , type(present_page))
-        form = extradetails[present_page-1]
-        questions = form.questions.all()
+#     if present_page > 1:
+#         main_response = request.session.get('main_response')
+#         print(main_response,"    Main response..................")
+#         #print("form_id" , form_id)
+#         extrapages = True
+#         form = get_object_or_404(Form, id=form_id)
+#         form = form.extradetails.all()[present_page-1]
+#         #print("Old Extradetail object created")
+#         main_form = form.Model
+#         #print("Got the main form and their lists")
+#         extradetails = main_form.extradetails.all()
+#         pages =[]
+#         for i in extradetails:
+#             pages.append(i.title)
+#         #print(type(pages),pages)
+#         #print(present_page , type(present_page))
+#         form = extradetails[present_page-1]
+#         questions = form.questions.all()
             
-    else:
-        #print("Form object created.")
-        form = get_object_or_404(Form, id=form_id)
-        questions = form.questions.all()
-        extradetails = form.extradetails.all()
-        pages =[]
-        for i in extradetails:
-            pages.append(i.title)
-    #preparing the extra details
+#     else:
+#         #print("Form object created.")
+#         form = get_object_or_404(Form, id=form_id)
+#         questions = form.questions.all()
+#         extradetails = form.extradetails.all()
+#         pages =[]
+#         for i in extradetails:
+#             pages.append(i.title)
+#     #preparing the extra details
 
-    # Prepare split choices for multiple choice and dropdown questions
-    for question in questions:
-        if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
-            question.split_choices = question.choices.split(',') if question.choices else []
+#     # Prepare split choices for multiple choice and dropdown questions
+#     for question in questions:
+#         if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
+#             question.split_choices = question.choices.split(',') if question.choices else []
 
     
-    if request.method == 'POST':
-        if extrapages:
-            response = ExtraResponse(form = form , response = main_response)
-            print("Added response")
-            print("Extra response saving")
+#     if request.method == 'POST':
+#         if extrapages:
+#             response = ExtraResponse(form = form , response = main_response)
+#             print("Added response")
+#             print("Extra response saving")
 
-        else:
-            response = Response(form=form)
-            #print("Main response saving...")
+#         else:
+#             response = Response(form=form)
+#             #print("Main response saving...")
 
-        response.save()
+#         response.save()
 
-        # Process each question's answer
-        for question in questions:
-  # Handle file upload for images
-            if question.question_type == 'IMG':
-                answer_file = request.FILES.get(f'question_{question.id}')
-                if answer_file:
-                    if extrapages:
-                        ExtraAnswer.objects.create(response=response, question=question, answer_image=answer_file)
-                    else:
-                        Answer.objects.create(response=response, question=question, answer_image=answer_file)
-            else:
-                # Handle text-based answers
-                answer_text = request.POST.get(f'question_{question.id}')
-                if answer_text:
-                    if extrapages:
-                        ExtraAnswer.objects.create(response=response, question=question, answer_text=answer_text)
-                    else:
-                        Answer.objects.create(response=response, question=question, answer_text=answer_text)
-        #print("Response submission done...")
-        #print("Page length:", len(pages))
-        if (present_page < len(pages)):
+#         # Process each question's answer
+#         for question in questions:
+#   # Handle file upload for images
+#             if question.question_type == 'IMG':
+#                 answer_file = request.FILES.get(f'question_{question.id}')
+#                 if answer_file:
+#                     if extrapages:
+#                         ExtraAnswer.objects.create(response=response, question=question, answer_image=answer_file)
+#                     else:
+#                         Answer.objects.create(response=response, question=question, answer_image=answer_file)
+#             else:
+#                 # Handle text-based answers
+#                 answer_text = request.POST.get(f'question_{question.id}')
+#                 if answer_text:
+#                     if extrapages:
+#                         ExtraAnswer.objects.create(response=response, question=question, answer_text=answer_text)
+#                     else:
+#                         Answer.objects.create(response=response, question=question, answer_text=answer_text)
+#         #print("Response submission done...")
+#         #print("Page length:", len(pages))
+#         if (present_page < len(pages)):
             
 
-            if present_page == 1 :
-                #print("form_id" , form_id)
-                form = form.extradetails.all()[present_page-1]
-                questions = form.questions.all()
-                request.session['main_response'] = response 
-                #print(form ,form.id)
+#             if present_page == 1 :
+#                 #print("form_id" , form_id)
+#                 form = form.extradetails.all()[present_page-1]
+#                 questions = form.questions.all()
+#                 request.session['main_response'] = response 
+#                 #print(form ,form.id)
 
-                for question in questions:
-                    if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
-                        question.split_choices = question.choices.split(',') if question.choices else []
+#                 for question in questions:
+#                     if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
+#                         question.split_choices = question.choices.split(',') if question.choices else []
 
-            if present_page > 1 :
-                request.session['main_response'] = main_response 
-                #print("form_id" , form_id)
-                form = main_form.extradetails.all()[present_page-1]
-                questions = form.questions.all()
-                #print(form ,form.id)
+#             if present_page > 1 :
+#                 request.session['main_response'] = main_response 
+#                 #print("form_id" , form_id)
+#                 form = main_form.extradetails.all()[present_page-1]
+#                 questions = form.questions.all()
+#                 #print(form ,form.id)
 
-                for question in questions:
-                    if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
-                        question.split_choices = question.choices.split(',') if question.choices else []
+#                 for question in questions:
+#                     if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
+#                         question.split_choices = question.choices.split(',') if question.choices else []
 
 
                 
-            return render(request, 'forms/form_detail.html', {'form': form, 'questions': questions , 'pages': json.dumps(pages) ,'present_page': present_page})
-        else:
-            #print("End of pages list")
-            return redirect('event:view_forms')
+#             return render(request, 'forms/form_detail.html', {'form': form, 'questions': questions , 'pages': json.dumps(pages) ,'present_page': present_page})
+#         else:
+#             #print("End of pages list")
+#             return redirect('event:view_forms')
         
 
-        # Redirect to the same form to allow multiple submissions
-        # return redirect('form_responses', form_id=form.id)
+#         # Redirect to the same form to allow multiple submissions
+#         # return redirect('form_responses', form_id=form.id)
 
-    return render(request, 'forms/form_detail.html', {'form': form, 'questions': questions , 'pages': json.dumps(pages) ,'present_page': present_page})
+#     return render(request, 'forms/form_detail.html', {'form': form, 'questions': questions , 'pages': json.dumps(pages) ,'present_page': present_page})
 
 def delete_form(request, form_id):
     try:
@@ -322,6 +322,123 @@ def delete_form(request, form_id):
             return redirect('event:view_forms')  # Redirect to the form list after deletion
     except Form.DoesNotExist:
         raise Http404("Form not found")
+
+
+def fill_form(request, form_id):
+        #print("Form object created.")
+    form = get_object_or_404(Form, id=form_id)
+    questions = form.questions.all()
+    extradetails = form.extradetails.all()
+    total_pages = len(extradetails)
+    pages =[]
+    for i in extradetails:
+        pages.append(i.title)
+
+    for question in questions:
+        if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
+            question.split_choices = question.choices.split(',') if question.choices else []
+        
+    if request.method == 'POST':
+        print(total_pages )
+        print("submit form")
+
+        response = Response(form=form)
+        print("Main response saving...")
+        response.save()
+        for question in questions:
+            if question.question_type == 'IMG':
+                answer_file = request.FILES.get(f'question_{question.id}')
+                if answer_file:
+                    Answer.objects.create(response=response, question=question, answer_image=answer_file)
+            else:
+                # Handle text-based answers
+                answer_text = request.POST.get(f'question_{question.id}')
+                if answer_text:
+                    Answer.objects.create(response=response, question=question, answer_text=answer_text)
+
+        print("if extra details present then go to fill extra details with the response id and form id...")
+        if total_pages >0:
+            print(response.id , form.id)
+            print("Goto to fill extra details")
+            return redirect('event:fill_extradetails', form_id=form_id, response_id=response.id)
+        else:
+            print("goto fill participants details")
+            return HttpResponse("Participants Details")
+    else:
+        print("form went to render")
+        return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})
+
+    pass
+# return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages ,'present_page': present_page})
+
+def fill_extradetails(request, form_id, response_id):
+    print("Loading filling extra details...")
+    present_page = request.POST.get('present_page')
+    if present_page is None:
+        present_page = 0
+    else:
+        present_page = int(present_page)
+    form = get_object_or_404(Form, id=form_id)
+    extradetails = form.extradetails.all()
+    print("Extradetails length: ",len(extradetails) , present_page)
+    extraform = extradetails[present_page]
+    print("Extraform_id:" , extraform.id)
+    extraform = get_object_or_404(ExtraDetails, id=extraform.id)
+    total_pages = len(extradetails)
+    pages =[]
+    for i in extradetails:
+        pages.append(i.title)
+    questions = extraform.questions.all()
+    print(questions)
+    main_response = get_object_or_404(Response , id = response_id)
+    for question in questions:
+        if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
+            question.split_choices = question.choices.split(',') if question.choices else []
+
+
+    if request.method == 'POST':
+        response = ExtraResponse(form = extraform, response = main_response)
+        print("Main response saving...")
+        response.save()
+        print("Response saved............................")
+        for question in questions:
+            if question.question_type == 'IMG':
+                answer_file = request.FILES.get(f'question_{question.id}')
+                if answer_file:
+                    ExtraAnswer.objects.create(response=response, question=question, answer_image=answer_file)
+            else:
+                # Handle text-based answers
+                answer_text = request.POST.get(f'question_{question.id}')
+                if answer_text:
+                    ExtraAnswer.objects.create(response=response, question=question, answer_text=answer_text)
+
+
+        present_page +=1
+        print(present_page, total_pages)
+        if (present_page < total_pages):
+            form = form
+            extradetails = form.extradetails.all()
+            extraform = extradetails[present_page]
+            total_pages = len(extradetails)
+            pages =[]
+            for i in extradetails:
+                pages.append(i.title)
+            main_response = get_object_or_404(Response, id = response_id)
+            questions = extraform.questions.all()
+            print(questions)
+            for question in questions:
+                if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
+                    question.split_choices = question.choices.split(',') if question.choices else []
+            print(questions)
+            return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': present_page})
+        else:
+            return HttpResponse("Participants Details")
+
+
+    else:
+        print("form went to render")
+        return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})    
+
 
 
 def participants_details(request ,response_id):
@@ -337,6 +454,3 @@ def participants_details(request ,response_id):
     #     reg_form = RegistrationDetailsForm(user=request.user, form_id=response_id)
 
     # return render(request, 'forms/create_registration.html', {'reg_form': reg_form})
-
-def participants_Details(request ,response_id, registration):
-    print(registration)

@@ -126,7 +126,7 @@
                         {% endif %}
                         
                         <div class="form-content">
-                            <a href="{% url 'event:form_detail' form.id %}" class="form-title">{{ form.title|slice:":21"}}{% if form.title|length > 21 %}...{% endif %}</a>
+                            <a href="{% url 'event:fill_form' form.id %}" class="form-title">{{ form.title|slice:":21"}}{% if form.title|length > 21 %}...{% endif %}</a>
                             <p class="form-description">
                                 {{ form.description|slice:":30" }}{% if form.description|length > 30 %}...{% endif %}
                             </p>
