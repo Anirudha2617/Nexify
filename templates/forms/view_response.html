@@ -51,8 +51,7 @@
         <h1>Submissions for {{ form.title }}</h1>
         <p>{{ form.description }}</p>
     
-        {% if responses %}
-            {% for response in responses %}
+            {% for response in all_responses %}
                 <h2>Submission {{ forloop.counter }}</h2>
                 <p>Submitted on: {{ response.created_at }}</p>
                 
@@ -74,11 +73,10 @@
                 </ul>
                 <hr>
             {% endfor %}
-        {% else %}
-            <p>No submissions have been made for this form yet.</p>
-        {% endif %}
+
     
         <a href="{% url 'event:view_forms' %}">View Form</a>
+        <a href="{% url 'event:register' response_id %}">Register</a>
     </div>
 </section>
 

@@ -83,13 +83,21 @@ def view_forms(request):
     }
     return render(request, 'forms/view_forms.html', context)
 
-
 def view_response(request, response_id):
     response = get_object_or_404(Response, id=response_id)
-    print(response.extra_responses.all())
-    return HttpResponse("View response")
-
-
+    form = get_object_or_404(Form, id=response.form.id)
+    all_extraresponses = response.extra_responses.all()
+    all_responses = []
+    all_responses.append(response)
+    for i in all_extraresponses:
+        all_responses.append(i)
+    print(all_responses)
+    context = {
+        'form': form,
+        'all_responses': all_responses,
+        'response_id': response_id
+    }
+    return render(request ,  'forms/view_response.html' , context)
 
 def form_list(request):
     """View to list all forms."""
@@ -341,7 +349,6 @@ def delete_form(request, form_id):
     except Form.DoesNotExist:
         raise Http404("Form not found")
 
-
 def fill_form(request, form_id):
         #print("Form object created.")
     form = get_object_or_404(Form, id=form_id)
@@ -387,7 +394,6 @@ def fill_form(request, form_id):
         return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})
 
     pass
-# return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages ,'present_page': present_page})
 
 def fill_extradetails(request, form_id, response_id):
     print("Loading filling extra details...")
@@ -457,7 +463,6 @@ def fill_extradetails(request, form_id, response_id):
         print("form went to render")
         return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})    
 
-
 def registration_details(request ,response_id):
 
     if request.method == 'POST':
@@ -470,3 +475,6 @@ def registration_details(request ,response_id):
         registration_form = RegistrationDetailsForm( response_id = response_id)
 
     return render(request, 'forms/create_registration.html', {'registration_form': registration_form})
+
+def register(request ,response_id):
+    return HttpResponse("registration done here")

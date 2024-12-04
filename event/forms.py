@@ -80,3 +80,4 @@ class RegistrationDetailsForm(forms.ModelForm):
                 self.fields['response'].initial = form_instance  # Set the initial value
             except Response.DoesNotExist:
                 raise forms.ValidationError(f"Form with ID {response_id} does not exist.")
+

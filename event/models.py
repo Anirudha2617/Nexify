@@ -89,7 +89,6 @@ class Answer(models.Model):
             except ValueError:
                 raise ValidationError("Invalid date and time format. Use 'YYYY-MM-DD HH:MM:SS' format.")
 
-
 class ExtraDetails(models.Model):
     Model = models.ForeignKey(
         Form, 
