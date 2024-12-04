@@ -128,7 +128,7 @@
     
                 {% for question in questions %}
                     <div class='question-id {{ question.question_type }}'>
-                        <p>{{ question.question_type }}</p>
+                        <p>{{ question.text }}</p>
     
                         {% if question.question_type == 'TEXT' or question.question_type == 'SA' %}
                             <input type="text" name="question_{{ question.id }}" required><br>

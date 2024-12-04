@@ -169,7 +169,6 @@ class ExtraAnswer(models.Model):
                 raise ValidationError("Invalid date and time format. Use 'YYYY-MM-DD HH:MM:SS' format.")
 
 
-
 class Registration_details(models.Model):
     INDIVIDUAL  = "individual"
     GROUP = "group"
@@ -180,6 +179,8 @@ class Registration_details(models.Model):
     ]
     
     response = models.ForeignKey(Response, related_name='registration_details', on_delete=models.CASCADE ,blank = True , null = True)
+    invited_users = models.ManyToManyField(User, related_name='invited_users')
+    accepted_users = models.ManyToManyField(User, related_name='accepted_users')
 
     platform = models.BooleanField()
     participation_type = models.CharField(choices=PARTICIPATION_TYPE, max_length=20, default=INDIVIDUAL)

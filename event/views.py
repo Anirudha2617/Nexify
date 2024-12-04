@@ -477,4 +477,5 @@ def registration_details(request ,response_id):
     return render(request, 'forms/create_registration.html', {'registration_form': registration_form})
 
 def register(request ,response_id):
+    print(request.user.club_memberships)
     return HttpResponse("registration done here")
