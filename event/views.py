@@ -1,14 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse , Http404
-from .models import Form, Question, Response, Answer
-from .forms import FormCreateForm, FormCreateExtraDetails , RegistrationDetailsForm
+from .models import Form, Question, Response, Answer, Registration_details, Notification
+from .forms import FormCreateForm, FormCreateExtraDetails , RegistrationDetailsForm, NotificationForm
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Form, Question, Response, Answer ,ExtraQuestion, ExtraAnswer, ExtraResponse, ExtraDetails
 from django.forms import modelformset_factory
 from collections import defaultdict
 from django.contrib.auth.models import User
-from home.models import UserProfile
-import json
+from club.models import ClubMember, ClubDetails
+from django.http import HttpResponseForbidden , HttpResponseRedirect
 from django.contrib import messages
 
 def add_questions(request, form_id):
@@ -57,6 +57,7 @@ def form_responses(request, form_id):
     return render(request, 'forms/form_responses.html', {'form': form, 'responses': responses})
 
 def view_forms(request):
+
     # Assuming the Form model has a 'form_type' attribute
     # Group forms by their 'form_type' attribute
     form_types = Form.objects.values('form_type').distinct()  # Get distinct form types
@@ -75,29 +76,51 @@ def view_forms(request):
     print(all_titles)
 
     print(len(all_events))
+
+    #NOTIFICATIONS
+    all_notifications = Notification.get_unread_notifications(request.user)
+ 
+
     # Passing the grouped forms to the template
     context = {
         'grouped_forms': grouped_forms,
         'all_events': all_events,
         'all_titles': all_titles,
+        'all_notifications': all_notifications,
     }
     return render(request, 'forms/view_forms.html', context)
 
 def view_response(request, response_id):
     response = get_object_or_404(Response, id=response_id)
-    form = get_object_or_404(Form, id=response.form.id)
-    all_extraresponses = response.extra_responses.all()
-    all_responses = []
-    all_responses.append(response)
-    for i in all_extraresponses:
-        all_responses.append(i)
-    print(all_responses)
-    context = {
-        'form': form,
-        'all_responses': all_responses,
-        'response_id': response_id
-    }
-    return render(request ,  'forms/view_response.html' , context)
+    related_objects = response.registration_details.all()
+    if related_objects :
+        for detail in related_objects:
+            registration = detail
+    else:
+        registration = None
+    try:
+        is_invited = (request.user in registration.accepted_users.all())
+
+    except:
+        is_invited = False
+
+    if (response.created_by == request.user) or (is_invited):
+        if (response.created_by != request.user) :
+            registration = None
+        
+        
+        form = get_object_or_404(Form, id=response.form.id)
+        all_extraresponses = response.extra_responses.all()
+        context = {
+            'form': form,
+            'main_response': response,
+            'all_extraresponses': all_extraresponses,
+            'response_id': response_id,
+            'registration' :registration,
+        }
+        return render(request ,  'forms/view_response.html' , context)
+    else:
+        return HttpResponseForbidden("You are not authorized to view this response.")
 
 def form_list(request):
     """View to list all forms."""
@@ -465,17 +488,114 @@ def fill_extradetails(request, form_id, response_id):
 
 def registration_details(request ,response_id):
 
+    all_clubs_members = []
+
+    user_in_clubs=ClubMember.objects.filter(user=request.user)
+
+    for club in user_in_clubs:
+        club_detail = ClubDetails.objects.filter(club_pk=club.club.club_pk, branch_pk=club.club.branch_pk).first()
+        all_members = ClubMember.objects.filter( club = club_detail )
+        all_clubs_members.append({
+            'club': club_detail,
+            'all_members': all_members
+        })
+    # for i in all_clubs_members:
+    #     print(i)
+
+    
     if request.method == 'POST':
         registration_form = RegistrationDetailsForm(request.POST, response_id=response_id)
         if registration_form.is_valid():
+
+
+            print(registration_form.invited_users.all())
+
+
             print("Registration form created successfully ....................................................................")
             registration_form.save()
             return redirect('event:view_forms')  # Redirect after saving
     else:
-        registration_form = RegistrationDetailsForm( response_id = response_id)
+        registration_form = RegistrationDetailsForm( response_id = response_id , all_clubs_members = all_clubs_members)
 
-    return render(request, 'forms/create_registration.html', {'registration_form': registration_form})
+    return render(request, 'forms/create_registration.html', {'registration_form': registration_form, 'all_clubs_members': all_clubs_members})
 
 def register(request ,response_id):
-    print(request.user.club_memberships)
+    member_in_club = []
+    user_in_clubs=ClubMember.objects.filter(user=request.user)
+    print(user_in_clubs)
+    for club in user_in_clubs:
+        club_detail = ClubDetails.objects.filter(club_pk=club.club.club_pk, branch_pk=club.club.branch_pk).first()
+        member_in_club.append({
+            'member': club,
+            'club_detail': club_detail
+            })
+    club = member_in_club[0]['club_detail']
+    all_members = ClubMember.objects.filter( club = club )
+
+    print(all_members)
     return HttpResponse("registration done here")
+
+
+def edit_registrationdetails(request ,registration_id):
+
+    print(" yupp..............................................")
+    registration = get_object_or_404(Registration_details, pk=registration_id)
+    print("Registration Form:",registration)
+
+    if request.method == "POST":
+        # Bind the form to the POST data
+        form = RegistrationDetailsForm(request.POST, instance=registration)
+        if form.is_valid():
+
+            invited_users = form.cleaned_data.get('invited_users', None)
+            for user in invited_users:
+                notification1 = Notification.create_notification(
+                user=user,
+                title="Approve Request",
+                message="You need to approve the request.",
+                notification_type=Notification.INFO,
+                sent_from = request.user,
+                event = registration
+                )
+                if notification1 :
+                    print("notification created for:", user , notification1.id)
+
+
+            form.save()  # Save changes to the object
+            return redirect('event:view_response', response_id = registration.response.id)  # Replace with your success page
+    else:
+        # Prepopulate the form with the object's data
+        form = RegistrationDetailsForm(instance=registration)
+
+    return render(request, 'forms/create_registration.html', {'registration_form': form, 'all_clubs_members': None})
+
+
+
+from django.http import JsonResponse
+from django.shortcuts import render
+
+def handle_notification(request):
+    if request.method == "POST":
+        # Filter out all keys that start with "card-"
+        card_states = {key: value for key, value in request.POST.items() if key.startswith('card-')}
+
+        # Process each notification state
+        for card_id, action in card_states.items():
+            notification_id = card_id.replace('card-', '')  # Extract the ID
+            notification = get_object_or_404(Notification,id = notification_id)
+            if action == "accept":
+                notification.status = True
+                notification.mark_as_read()
+                notification.perform_action()
+            elif action == "reject":
+                notification.status = False
+                notification.mark_as_read()
+                notification.perform_action()
+            print(f"Notification ID: {notification_id}, Action: {action}")
+            # Add your logic here to mark as accepted/rejected, etc.
+            
+        previous_url = request.META.get('HTTP_REFERER', '/default-url/')  # Fallback URL in case the referer is not available
+        return HttpResponseRedirect(previous_url)
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+

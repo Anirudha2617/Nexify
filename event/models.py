@@ -172,15 +172,27 @@ class ExtraAnswer(models.Model):
 class Registration_details(models.Model):
     INDIVIDUAL  = "individual"
     GROUP = "group"
+    PUBLIC = "Public"
+    CLUB = 'Clubs'
+    INVITED = 'Invited'
 
     PARTICIPATION_TYPE = [
         (INDIVIDUAL, 'Individual'),
         (GROUP, 'Group'),
     ]
-    
+
+    VISIBILITY_TYPE = [
+        (PUBLIC, 'Public'),
+        (CLUB, 'Clubs'),
+        (INVITED, 'Invited')
+    ]
     response = models.ForeignKey(Response, related_name='registration_details', on_delete=models.CASCADE ,blank = True , null = True)
-    invited_users = models.ManyToManyField(User, related_name='invited_users')
-    accepted_users = models.ManyToManyField(User, related_name='accepted_users')
+
+    visibility = models.CharField(choices=VISIBILITY_TYPE, max_length=20, default=INDIVIDUAL)
+    compulsary = models.BooleanField(default=False)
+    invited_users = models.ManyToManyField(User, related_name='invited_forms')
+    accepted_users = models.ManyToManyField(User, related_name='accepted_forms')
+    rejected_users = models.ManyToManyField(User, related_name='rejected_forms')
 
     platform = models.BooleanField()
     participation_type = models.CharField(choices=PARTICIPATION_TYPE, max_length=20, default=INDIVIDUAL)
@@ -189,3 +201,84 @@ class Registration_details(models.Model):
     registration_start = models.DateTimeField(blank = False , null = False , default = datetime.now())
     registration_end = models.DateTimeField(blank = False , null = False )
     number_of_registration = models.IntegerField(blank=True, null=True)
+
+
+class Notification(models.Model):
+    # Notification types
+    INFO = 'info'
+    WARNING = 'warning'
+    ERROR = 'error'
+    SUCCESS = 'success'
+
+    NOTIFICATION_TYPES = [
+        (INFO, 'Info'),
+        (WARNING, 'Warning'),
+        (ERROR, 'Error'),
+        (SUCCESS, 'Success'),
+    ]
+
+    # Fields
+    sent_from = models.ForeignKey(User, related_name = 'event_sent_notifications', on_delete=models.CASCADE )
+    event = models.ForeignKey(Registration_details, related_name = 'notifications', on_delete=models.CASCADE , null =True )
+    user = models.ForeignKey(User, related_name = 'event_notifications', on_delete=models.CASCADE )
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default=INFO)
+    is_read = models.BooleanField(default=False)
+    status = models.BooleanField(null= True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.username}: {self.title}"
+
+    # Methods
+    def mark_as_read(self):
+        self.is_read = True
+        self.save()
+
+    def mark_as_unread(self):
+        self.is_read = False
+        self.save()
+
+    @classmethod
+    def create_notification(cls, user, title, message, sent_from, event, notification_type=INFO ):
+        return cls.objects.create(
+            user=user,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            sent_from=sent_from,
+            event = event,
+        )
+
+    @classmethod
+    def get_unread_notifications(cls, user):
+        return cls.objects.filter(user=user, is_read=False)
+
+    @classmethod
+    def mark_all_as_read(cls, user):
+        cls.objects.filter(user=user, is_read=False).update(is_read=True)
+
+    def perform_action(self):
+        """
+        Perform action based on the `action_button` value.
+        """
+        if self.status:
+            return self.action_true()
+        else:
+            return self.action_false()
+
+    def action_true(self):
+        # Action when `action_button` is True
+        self.event.invited_users.remove(self.user)
+        self.event.accepted_users.add(self.user)
+        self.save()
+
+    def action_false(self):
+        # Action when `action_button` is False
+        self.event.invited_users.remove(self.user)
+        self.event.rejected_users.add(self.user)
+        print("User poppeed......")
+
+        

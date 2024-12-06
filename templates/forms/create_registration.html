@@ -1,116 +1,58 @@
-{% extends "allauth/layouts/main_base.html" %} {% load i18n %} {% load static %}
-{% load markdownify %} {% load allauth account %} {% block head_title %} {%
-trans "Profile" %} {% endblock head_title %} {% block stylesheet %}
+{% extends "allauth/layouts/main_base.html" %}
+{% load static %}
+{% block head_title %}Create Registration{% endblock head_title %}
+{% block stylesheet %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-  /* General Body Styling */
-  body {
-    background-color: #0c1117;
-    color: rgb(213, 211, 211);
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    color: white;
-  }
-  h1 {
-    color: white;
-    text-align: center;
-  }
-  p {
-    color: rgb(213, 211, 211);
-    margin-bottom: 1em;
-    text-align: center;
-  }
-
-  /* Form Container */
-  .form {
-    background-color: #1b1f26;
-    padding: 20px;
-    border-radius: 1rem;
-    max-width: 300px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-  }
-  .form img {
-    max-width: 100%;
-    border-radius: 10px;
-    margin-bottom: 1em;
-  }
-
-  /* Input and Textarea Styling */
-  input[type="text"],
-  input[type="datetime-local"],
-  select,
-  textarea,
-  input[type="file"] {
-    width: 100%;
-    padding: 0.5em;
-    border: 1px solid #a19f9f;
-    border-radius: 5px;
-    background-color: #0c1117;
-    color: white;
-    margin-bottom: 1em;
-  }
-  input[type="radio"] {
-    margin-right: 5px;
-  }
-
-  label {
-    color: rgb(213, 211, 211);
-  }
-
-  /* Button Styling */
-  .button-container {
-    text-align: center;
-    margin-top: 20px;
-  }
-  button {
-    border: 1px solid #a19f9f;
-    border-radius: 5px;
-    color: white;
-    background-color: #0c1117;
-    padding: 0.5em 1em;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  button:hover {
-    background-color: #299afd;
-  }
-
-  /* Image Container */
-  .image-container {
-    background-color: #1b1f26;
-    border: 1px solid #a19f9f;
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 1em;
-  }
-
-  /* Links */
-  a {
-    color: #299afd;
-    text-decoration: none;
-    display: block;
-    text-align: center;
-    margin-top: 1em;
-  }
-  a:hover {
-    text-decoration: underline;
+  /* Additional custom styles */
+  .hidden { display: none; }
+  .select2-container {
+      width: 100% !important;
   }
 </style>
-<link rel="stylesheet" href="{% static 'assets/css/forms/form_detail.css' %}" />
-{% endblock stylesheet %} {% block pages %}
+{% endblock stylesheet %}
 
-<section>
-  <head>
-    <title>Registrations Details</title>
-  </head>
-  <body>
+{% block pages %}
+<main>
     <h1>Create a Registration</h1>
     <form method="post">
-      {% csrf_token %} {{ registration_form.as_p }}
-      <button type="submit">Save</button>
+        {% csrf_token %}
+        {{ registration_form.as_p }}
+        <div class="button-container">
+            <button type="submit">Save</button>
+        </div>
     </form>
-  </body>
-</section>
+</main>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Initialize Select2 on the invited_users field
+        const invitedUsersField = $('#id_invited_users');
+        invitedUsersField.select2({
+            placeholder: "Select invited users",
+            allowClear: true
+        });
+
+        // Dynamically show/hide the invited_users field based on visibility
+        const visibilityField = document.getElementById("id_visibility");
+        const invitedUsersFieldWrapper = invitedUsersField.parent();
+
+        function toggleInvitedUsersField() {
+            if (visibilityField.value === "Public") {
+                invitedUsersFieldWrapper.addClass('hidden');
+                invitedUsersField.val(null).trigger('change'); // Clear selection
+            } else {
+                invitedUsersFieldWrapper.removeClass('hidden');
+            }
+        }
+
+        // Initial state
+        toggleInvitedUsersField();
+
+        // Update on change
+        visibilityField.addEventListener("change", toggleInvitedUsersField);
+    });
+</script>
 {% endblock pages %}

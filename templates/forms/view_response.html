@@ -50,33 +50,62 @@
     <div class="row" style="padding: 1rem;padding-top: 0;">
         <h1>Submissions for {{ form.title }}</h1>
         <p>{{ form.description }}</p>
-    
-            {% for response in all_responses %}
-                <h2>Submission {{ forloop.counter }}</h2>
-                <p>Submitted on: {{ response.created_at }}</p>
-                
-                <p>Submitted by: {{ response.created_by }}</p>
-                <ul>
-                    {% for answer in response.answers.all %}
-                        <li>
-                            <strong>{{ answer.question.text }}:</strong> 
-                            {% if answer.answer_text %}
-                                {{ answer.answer_text }}
-                            {% endif %}
-                            
-                            {% if answer.answer_image %}
-                                <br>
-                                <img src="{{ answer.answer_image.url }}" alt="Uploaded Image" width="200" height="auto">
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-                <hr>
+
+        <p>Submitted on: {{ main_response.created_at }}</p>
+        <p>Submitted by: {{ main_response.created_by }}</p>
+        <ul>
+            {% for answer in main_response.answers.all %}
+                <li>
+                    <strong>{{ answer.question.text }}:</strong> 
+                    {% if answer.answer_text %}
+                        {{ answer.answer_text }}
+                    {% endif %}
+                    
+                    {% if answer.answer_image %}
+                        <br>
+                        <img src="{{ answer.answer_image.url }}" alt="Uploaded Image" width="200" height="auto">
+                    {% endif %}
+                </li>
             {% endfor %}
+        </ul>
+        <hr>
+    
+        {% for response in all_extraresponses %}
+            <ul>
+                {% for answer in response.answers.all %}
+                    <li>
+                        <strong>{{ answer.question.text }}:</strong> 
+                        {% if answer.answer_text %}
+                            {{ answer.answer_text }}
+                        {% endif %}
+                        
+                        {% if answer.answer_image %}
+                            <br>
+                            <img src="{{ answer.answer_image.url }}" alt="Uploaded Image" width="200" height="auto">
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+            <hr>
+        {% endfor %}
+        {% if registration %}
+            {% for invited_users in registration.invited_users.all %}
+                <li>
+                    {{invited_users}}
+                </li>
+            {% endfor %}
+        {% endif %}
+
+   
+
 
     
         <a href="{% url 'event:view_forms' %}">View Form</a>
         <a href="{% url 'event:register' response_id %}">Register</a>
+        {% if registration %}
+            <a href="{% url 'event:edit_register' registration.id %}">Edit Registration</a>
+        {% endif %}
+
     </div>
 </section>
 

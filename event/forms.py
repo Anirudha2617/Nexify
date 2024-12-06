@@ -1,5 +1,5 @@
 from django import forms
-from .models import Form, Question ,ExtraDetails,  Response, Registration_details
+from .models import Form, Question ,ExtraDetails,  Response, Registration_details, Notification
 from home.models import UserProfile
 from django.contrib.auth.models import User
 
@@ -47,7 +47,6 @@ class FormCreateExtraDetails(forms.ModelForm):
 
 
 class RegistrationDetailsForm(forms.ModelForm):
-
     class Meta:
         model = Registration_details
         fields = [
@@ -58,7 +57,10 @@ class RegistrationDetailsForm(forms.ModelForm):
             'maximum_members',
             'registration_start', 
             'registration_end', 
-            'number_of_registration'
+            'number_of_registration',
+            'visibility',
+            'compulsary',
+            'invited_users',
         ]
         widgets = {
             'response': forms.HiddenInput(),  # Hide the form field
@@ -69,15 +71,40 @@ class RegistrationDetailsForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        # Optional: If you want to filter the available forms based on the user
         response_id = kwargs.pop('response_id', None)
+        all_clubs_members = kwargs.pop('all_clubs_members', None)
         super().__init__(*args, **kwargs)
 
         if response_id:
             try:
-                # Fetch the form instance based on the provided form_id
                 form_instance = Response.objects.get(id=response_id)
-                self.fields['response'].initial = form_instance  # Set the initial value
+                self.fields['response'].initial = form_instance
             except Response.DoesNotExist:
                 raise forms.ValidationError(f"Form with ID {response_id} does not exist.")
 
+        # Hide invited_users field initially
+        if self.initial.get('visibility') == 'public':
+            self.fields['invited_users'].widget = forms.HiddenInput()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        visibility = cleaned_data.get('visibility')
+        invited_users = cleaned_data.get('invited_users')
+
+        if visibility != 'Public' and not invited_users:
+            raise forms.ValidationError("You must specify invited users if visibility is not public.")
+
+        return cleaned_data
+
+
+class NotificationForm(forms.ModelForm):
+    class Meta:
+        model = Notification
+        fields = ['title','message', 'status']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        return cleaned_data
