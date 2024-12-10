@@ -2,7 +2,6 @@ from django.urls import path
 from event import views
 from django.views.generic import TemplateView
 
-
 app_name = 'event'
 
 urlpatterns = [
@@ -25,4 +24,8 @@ urlpatterns = [
 
 
     path('handle_notification/', views.handle_notification, name='handle_notification'),
+    path('get-sub-type-choices/', views.get_sub_type_choices, name='get_sub_type_choices'),
+    path('response-form/', views.response_form_view, name='response_form'),
+    path('response-form/<int:response_id>/', views.response_detail_view, name='response_detail'),
 ]
+

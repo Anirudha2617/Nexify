@@ -67,28 +67,29 @@ def view_forms(request):
     for form_type in form_types:
         forms = Form.objects.filter(form_type=form_type['form_type'])
         grouped_forms[form_type['form_type']] = forms  # Group forms by type
+    
+    print("Events" , Response.get_forms(request.user))
 
-    all_events = Response.objects.filter(created_by = request.user)
+    all_events = Response.objects.filter(created_by = request.user, form__isnull=True )
     all_titles = []
-    for events in all_events:
-        title = events.form.questions.filter(text = 'Title')
-        all_titles.append(title)
-    print(all_titles)
-
-    print(len(all_events))
+    # for events in all_events:
+    #     title = events.form.questions.filter(text = 'Title')
+    #     all_titles.append(title)
+    
 
     #NOTIFICATIONS
     all_notifications = Notification.get_unread_notifications(request.user)
  
-
     # Passing the grouped forms to the template
     context = {
         'grouped_forms': grouped_forms,
         'all_events': all_events,
         'all_titles': all_titles,
         'all_notifications': all_notifications,
+        
     }
     return render(request, 'forms/view_forms.html', context)
+    # return HttpResponse("Trying ....")
 
 def view_response(request, response_id):
     response = get_object_or_404(Response, id=response_id)
@@ -411,7 +412,7 @@ def fill_form(request, form_id):
             return redirect('event:fill_extradetails', form_id=form_id, response_id=response.id)
         else:
             print("goto fill participants details")
-            return redirect('event:registration_details', response_id=response.id)
+            return HttpResponse("Succesfully submitted this response")
     else:
         print("form went to render")
         return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})
@@ -479,7 +480,7 @@ def fill_extradetails(request, form_id, response_id):
             print(questions)
             return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': present_page})
         else:
-            return redirect('event:registration_details', response_id=main_response.id)
+            return HttpResponse("Succesfully submitted this response")
 
 
     else:
@@ -506,13 +507,27 @@ def registration_details(request ,response_id):
     if request.method == 'POST':
         registration_form = RegistrationDetailsForm(request.POST, response_id=response_id)
         if registration_form.is_valid():
-
-
-            print(registration_form.invited_users.all())
-
+            invited_users = registration_form.cleaned_data.get("invited_users")
 
             print("Registration form created successfully ....................................................................")
-            registration_form.save()
+            registration_form = registration_form.save()
+            for user in invited_users:
+                if Notification.get_notification(request.user, user , registration_form):
+                    pass
+                notification1 = Notification.create_notification(
+                user=user,
+                title="Approve Request",
+                message=f"This is an request to join {registration_form.response.form.title} \n Hosted by {registration_form.response.created_by}",
+                notification_type=Notification.INFO,
+                sent_from = request.user,
+                event = registration_form
+                )
+                if notification1 :
+                    print("notification created for:", user , notification1.id)
+
+
+    
+
             return redirect('event:view_forms')  # Redirect after saving
     else:
         registration_form = RegistrationDetailsForm( response_id = response_id , all_clubs_members = all_clubs_members)
@@ -548,20 +563,24 @@ def edit_registrationdetails(request ,registration_id):
         if form.is_valid():
 
             invited_users = form.cleaned_data.get('invited_users', None)
+            form = form.save()  # Save changes to the object
             for user in invited_users:
-                notification1 = Notification.create_notification(
-                user=user,
-                title="Approve Request",
-                message="You need to approve the request.",
-                notification_type=Notification.INFO,
-                sent_from = request.user,
-                event = registration
-                )
-                if notification1 :
-                    print("notification created for:", user , notification1.id)
+                if Notification.get_notification(request.user, user , registration):
+                    pass
+                else:
+                    notification1 = Notification.create_notification(
+                    user=user,
+                    title="Approve Request",
+                    message=f"This is an request to join {form.response.form.title} \n Hosted by {form.response.created_by}",
+                    notification_type=Notification.INFO,
+                    sent_from = request.user,
+                    event = registration
+                    )
+                    if notification1 :
+                        print("notification created for:", user , notification1.id)
 
 
-            form.save()  # Save changes to the object
+            
             return redirect('event:view_response', response_id = registration.response.id)  # Replace with your success page
     else:
         # Prepopulate the form with the object's data
@@ -598,4 +617,52 @@ def handle_notification(request):
         return HttpResponseRedirect(previous_url)
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+
+from django.http import JsonResponse
+from .models import Response
+
+def get_sub_type_choices(request):
+    opportunity_type = request.GET.get('opportunity_type', None)
+    if opportunity_type == "General and case competition":
+        choices = Response.GENERAL_SUB_TYPES
+    elif opportunity_type == "Scolarships":
+        choices = Response.SCHOLARSHIP_SUB_TYPES
+    elif opportunity_type == "Hackathon and coding challenge":
+        choices = Response.HACKATHON_SUB_TYPES
+    else:
+        choices = []
+
+    # Convert choices to a JSON-serializable format
+    data = [{"value": choice[0], "display": choice[1]} for choice in choices]
+    print("Data sent succesfullyyyy")
+    return JsonResponse(data, safe=False)
+
+
+from .forms import ResponseForm
+
+def response_form_view(request):
+    if request.method == 'POST':
+
+        print("IN .....................")
+        form = ResponseForm(request.POST, request.FILES )
+        if form.is_valid():
+            form = form.save(user  =  request.user)
+            print(form.id)
+            return HttpResponse("Success")
+        else:
+            return HttpResponse("Failed")
+    else:
+        form = ResponseForm()
+
+    return render(request, 'forms/response_form.html', {'form': form})
+
+def response_detail_view(request, response_id):
+    # Get the Response object using the provided response_id
+    response = get_object_or_404(Response, pk=response_id)
+
+    # Pass the Response object to the template for rendering
+    return render(request, 'forms/response_detail.html', {'response': response})
+
 

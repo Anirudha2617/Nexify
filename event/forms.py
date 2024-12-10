@@ -108,3 +108,49 @@ class NotificationForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         return cleaned_data
+
+from django import forms
+from ckeditor.widgets import CKEditorWidget  # Import CKEditor widget
+from django import forms
+from .models import Response
+
+class ResponseForm(forms.ModelForm):
+    class Meta:
+        model = Response
+        fields = ['created_by', 'logo', 'opportunity_type', 'opportunity_sub_type', 'visibility', 'opportunity_title', 'organization', 'mode_of_event', 'categories', 'skills_to_be_assessed', 'about_opportunity', 'website_url', 'festival_name']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Dynamically update the choices for opportunity_sub_type based on opportunity_type
+        if self.instance and self.instance.opportunity_type:
+            self.fields['opportunity_sub_type'].choices = self.get_sub_type_choices(self.instance.opportunity_type)
+
+        # Set visibility and mode_of_event widgets to radio buttons
+        self.fields['visibility'].widget = forms.RadioSelect()
+        self.fields['mode_of_event'].widget = forms.RadioSelect()
+
+        # Update choices for visibility and mode_of_event
+        self.fields['visibility'].choices = Response.VISIBILITY_CHOICES
+        self.fields['mode_of_event'].choices = Response.MODE_CHOICES
+
+        # Categories field as CheckboxSelectMultiple
+        self.fields['categories'].widget = forms.CheckboxSelectMultiple()
+
+        # Use CKEditor for the about_opportunity field
+        self.fields['about_opportunity'].widget = forms.Textarea()
+
+    def get_sub_type_choices(self, opportunity_type):
+        if opportunity_type == 'General and case competition':
+            return Response.GENERAL_SUB_TYPES
+        elif opportunity_type == 'Scholarships':
+            return Response.SCHOLARSHIP_SUB_TYPES
+        elif opportunity_type == 'Hackathon and coding challenge':
+            return Response.HACKATHON_SUB_TYPES
+        else:
+            return []
+
+    def save(self, user ,  *args, **kwargs):
+        self.instance.created_by = user
+        return super().save(*args, **kwargs)
+        

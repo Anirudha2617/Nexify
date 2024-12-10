@@ -2,6 +2,10 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from datetime import datetime
 from django.contrib.auth.models import User
+from club.models import ClubDetails
+from ckeditor.fields import RichTextField 
+
+
 
 class Form(models.Model):
     created_by = models.ForeignKey(
@@ -55,19 +59,88 @@ class Question(models.Model):
         return []
     
 class Response(models.Model):
-    form = models.ForeignKey(Form, related_name='responses', on_delete=models.CASCADE)
-    created_by = models.ForeignKey(
-        User,  # Use app_label.ModelName as a string
-        on_delete=models.CASCADE,
-        default=None,
-        null=True,
-        blank=True,
-        related_name='created_by',
-    )
+    VISIBILITY_CHOICES = [
+        ('public', 'Open publicly on Unstop'),
+        ('invite', 'Invite Only'),
+    ]
+    OPPORTUNITY_TYPES = [
+        ("General and case competition", "General and case competition"),
+        ("Quizzes", "Quizzes"),
+        ("Hackathon and coding challenge", "Hackathon and coding challenge"),
+        ("Scolarships", "Scolarships"),
+        ("Workshop and webinars", "Workshop and webinars"),
+        ("Conferences", "Conferences"),
+        ("Creative and cultural events", "Creative and cultural events"),
+    ]
+
+    GENERAL_SUB_TYPES = [
+        ("Innovation Challenges", "Innovation Challenges"),
+        ("Case Competition", "Case Competition"),
+        ("General Competition", "General Competition"),
+    ]
+
+    HACKATHON_SUB_TYPES = [
+        ("Online Coding Challenge", "Online Coding Challenge"),
+        ("Innovation Challenge", "Innovation Challenge"),
+    ]
+
+    SCHOLARSHIP_SUB_TYPES = [
+        ("National", "National"),
+        ("International", "International"),
+    ]
+
+    MODE_CHOICES = [
+        ('online', 'Online Mode'),
+        ('offline', 'Offline Mode'),
+    ]
+
+    opportunity_type = models.CharField(choices=OPPORTUNITY_TYPES, max_length=35)
+    opportunity_sub_type = models.CharField(max_length=30, choices=[], blank=True, null=True)
+    logo = models.ImageField(upload_to='question_images/', blank=True, null=True)  # Store image file path
+    visibility = models.CharField(choices=VISIBILITY_CHOICES, max_length=10, default='public')  # New field
+    opportunity_title = models.CharField(max_length= 190, blank=True, null=True)
+    organization = models.ForeignKey(ClubDetails , blank=True, null=True ,on_delete=models.CASCADE)
+
+    # New fields from the UI
+    website_url = models.URLField(blank=True, null=True, help_text="The URL can be your organization's website or an opportunity-related URL.")
+    festival_name = models.CharField(max_length=100, blank=True, null=True, help_text="Name of the festival or campaign (if applicable).")
+    mode_of_event = models.CharField(choices=MODE_CHOICES, max_length=10, blank=True, null=True)
+    categories = models.ManyToManyField('Category', blank=True, help_text="Select at least one category.")
+    skills_to_be_assessed = models.TextField(blank=True, null=True, help_text="List required skills for participants.")
+    about_opportunity = RichTextField(help_text="Mention all the guidelines like eligibility, format, etc.", blank=True, null=True)
+
+
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='created_by')
     created_at = models.DateTimeField(auto_now_add=True)
+    form = models.ForeignKey(Form, related_name='responses', on_delete=models.CASCADE , null=True , blank=True  )
+
+
 
     def __str__(self):
-        return f'Response to {self.form.title} on {self.created_at}'
+        try:
+            return f'Response to {self.form.title} on {self.created_at}'
+        except:
+            return f'Form to {self.opportunity_type} on {self.created_at}'
+    def save(self, *args, **kwargs):
+        if self.opportunity_type == "General and case competition":
+            self._meta.get_field('opportunity_sub_type').choices = self.GENERAL_SUB_TYPES
+        elif self.opportunity_type == "Scolarships":
+            self._meta.get_field('opportunity_sub_type').choices = self.SCHOLARSHIP_SUB_TYPES
+        elif self.opportunity_type == "Hackathon and coding challenge":
+            self._meta.get_field('opportunity_sub_type').choices = self.HACKATHON_SUB_TYPES
+        else:
+            self._meta.get_field('opportunity_sub_type').choices = []
+
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_forms(cls, user):
+        """Return all forms with responses."""
+        return cls.objects.filter(
+            created_by=user,
+            form = None
+        )
+
 
 class Answer(models.Model):
     response = models.ForeignKey(Response, related_name='answers', on_delete=models.CASCADE)
@@ -168,7 +241,6 @@ class ExtraAnswer(models.Model):
             except ValueError:
                 raise ValidationError("Invalid date and time format. Use 'YYYY-MM-DD HH:MM:SS' format.")
 
-
 class Registration_details(models.Model):
     INDIVIDUAL  = "individual"
     GROUP = "group"
@@ -260,6 +332,11 @@ class Notification(models.Model):
     def mark_all_as_read(cls, user):
         cls.objects.filter(user=user, is_read=False).update(is_read=True)
 
+    @classmethod
+    def get_notification(cls, sent_by,sent_to,event ):
+        a = cls.objects.filter(sent_from=sent_by, event=event, user = sent_to)
+        return a
+
     def perform_action(self):
         """
         Perform action based on the `action_button` value.
@@ -281,4 +358,8 @@ class Notification(models.Model):
         self.event.rejected_users.add(self.user)
         print("User poppeed......")
 
-        
+class Category(models.Model):
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name

@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'ckeditor',
+    'ckeditor_uploader',
 
     'landing_page',
     'home',
@@ -189,3 +191,11 @@ MARKDOWNIFY = {
         "SAFE_MODE": True,
     }
 }
+
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': ['heading', '|', 'bold', 'italic', 'link', '|', 'undo', 'redo'],
+        'language': 'en',
+    },
+}
+CKEDITOR_UPLOAD_PATH = "uploads/ckeditor/"

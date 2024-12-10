@@ -1,0 +1,231 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Response Form</title>
+    
+    <!-- Include CKEditor scripts -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/36.0.1/classic/ckeditor.js"></script>
+    
+    <style>
+        .hidden {
+            display: none;
+        }
+    </style>
+    <style>
+        .visibility-options, .mode-options {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+    
+        .visibility-option, .mode-option {
+            position: relative;
+            cursor: pointer;
+            display: block;
+        }
+    
+        .visibility-option input[type="radio"], .mode-option input[type="radio"] {
+            display: none;
+        }
+    
+        .option-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 200px;
+            height: 120px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            background-color: #f9f9f9;
+        }
+    
+        .option-box .icon {
+            font-size: 30px;
+            margin-bottom: 10px;
+        }
+    
+        .option-box .option-title {
+            font-size: 14px;
+            font-weight: bold;
+        }
+    
+        .option-box .option-description {
+            font-size: 12px;
+            color: #666;
+        }
+    
+        input[type="radio"]:checked + .option-box, .mode-option input[type="radio"]:checked + .option-box {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Submit Your Response</h1>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+
+
+        <!-- Logo Upload -->
+        <div id="logo-wrapper">
+            {{ form.logo.label_tag }}
+            {{ form.logo }}
+        </div>
+
+        <!-- Opportunity Title -->
+        <div id="opportunity-title-wrapper">
+            {{ form.opportunity_title.label_tag }}
+            {{ form.opportunity_title }}
+        </div>
+
+        <!-- Opportunity Type -->
+        <div id="opportunity-type-wrapper">
+            {{ form.opportunity_type.label_tag }}
+            {{ form.opportunity_type }}
+        </div>
+
+        <!-- Opportunity Sub-Type -->
+        <div id="opportunity-sub-type-wrapper">
+            {{ form.opportunity_sub_type.label_tag }}
+            {{ form.opportunity_sub_type }}
+        </div>
+
+        <div id="website-url-wrapper">
+            {{ form.website_url.label_tag }}
+            {{ form.website_url }}
+        </div>
+
+        <div id="festival-name-wrapper">
+            {{ form.festival_name.label_tag }}
+            {{ form.festival_name }}
+        </div>
+
+        <!-- Organization -->
+        <div id="organization-wrapper">
+            {{ form.organization.label_tag }}
+            {{ form.organization }}
+        </div>
+
+        <!-- Mode of Event -->
+        <div class="mode-options">
+            <label>Mode of Event*</label>
+            {% for choice in form.mode_of_event.field.choices %}
+                <label class="mode-option">
+                    <input type="radio" name="{{ form.mode_of_event.name }}" value="{{ choice.0 }}" {% if form.mode_of_event.value == choice.0 or form.instance.mode_of_event == choice.0 %}checked{% endif %}>
+                    <div class="option-box">
+                        {% if choice.0 == 'online' %}
+                            <span class="icon">💻</span>
+                        {% elif choice.0 == 'offline' %}
+                            <span class="icon">🏢</span>
+                        {% else %}
+                            <span class="icon">🌐</span>
+                        {% endif %}
+                        <span class="option-title">{{ choice.1 }}</span>
+                    </div>
+                </label>
+            {% endfor %}
+        </div>
+
+        <!-- Categories -->
+        <div id="categories-wrapper">
+            {{ form.categories.label_tag }}
+            {{ form.categories }}
+        </div>
+
+        <!-- Skills to be Assessed -->
+        <div id="skills-wrapper">
+            {{ form.skills_to_be_assessed.label_tag }}
+            {{ form.skills_to_be_assessed }}
+        </div>
+
+        <!-- About Opportunity (Rich Text Editor) -->
+        <div id="about-opportunity-wrapper">
+            {{ form.about_opportunity.label_tag }}
+            {{ form.about_opportunity }}
+        </div>
+
+        <!-- Visibility Options -->
+        <div class="visibility-options">
+            <label>Visibility*</label>
+            {% for choice in form.visibility.field.choices %}
+                <label class="visibility-option">
+                    <input type="radio" name="{{ form.visibility.name }}" value="{{ choice.0 }}" {% if form.visibility.value == choice.0 or form.instance.visibility == choice.0 %}checked{% endif %}>
+                    <div class="option-box">
+                        {% if choice.0 == 'public' %}
+                            <span class="icon">🌍</span>
+                        {% else %}
+                            <span class="icon">🔒</span>
+                        {% endif %}
+                        <span class="option-title">{{ choice.1 }}</span>
+                    </div>
+                </label>
+            {% endfor %}
+        </div>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize CKEditor for the about_opportunity field
+            ClassicEditor
+                .create(document.querySelector('#id_about_opportunity'))
+                .catch(error => {
+                    console.error(error);
+                });
+        });
+    </script>
+</body>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const opportunityTypeField = document.getElementById('id_opportunity_type');
+            const subTypeField = document.getElementById('id_opportunity_sub_type');
+            const subTypeWrapper = document.getElementById('opportunity-sub-type-wrapper');
+
+            // Initially hide the sub-type wrapper
+            subTypeWrapper.classList.add('hidden');
+
+            opportunityTypeField.addEventListener('change', function () {
+                const selectedType = this.value;
+
+                if (!selectedType) {
+                    subTypeField.innerHTML = '<option value="">---------</option>';
+                    subTypeWrapper.classList.add('hidden');
+                    return;
+                }
+
+                fetch("{% url 'event:get_sub_type_choices' %}?opportunity_type=" + encodeURIComponent(selectedType))
+                    .then(response => response.json())
+                    .then(data => {
+                        subTypeField.innerHTML = '<option value="">---------</option>';
+                        if (data.length > 0) {
+                            data.forEach(choice => {
+                                const option = document.createElement('option');
+                                option.value = choice.value;
+                                option.textContent = choice.display;
+                                subTypeField.appendChild(option);
+                            });
+                            subTypeWrapper.classList.remove('hidden');
+                        } else {
+                            subTypeWrapper.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Failed to fetch sub-type choices:", error);
+                        subTypeWrapper.classList.add('hidden');
+                    });
+            });
+        });
+    </script>
+</body>
+
+</html>

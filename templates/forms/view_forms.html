@@ -160,7 +160,7 @@
                 {% for response in all_events %}
                     <li class="form-card">                        
                         <div class="form-content">
-                            <a href="{% url 'event:view_response' response_id=response.id %}" class="form-title">{{ response.id|slice:":21"}}{% if response.title|length > 21 %}...{% endif %}</a>
+                            <a href="{% url 'event:response_detail' response_id=response.id %}" class="form-title">{{ response.id|slice:":21"}}{% if response.title|length > 21 %}...{% endif %}</a>
                             <p class="form-description">
                                 {{ response.description|slice:":30" }}{% if response.description|length > 30 %}...{% endif %}
                             </p>
@@ -171,7 +171,6 @@
                 {% endfor %}
             </ul>
         </section>
-
 
 
         <form id="notification-form" method="POST" action="{% url 'event:handle_notification' %}">
