@@ -16,7 +16,7 @@
     <h1>Create a Registration</h1>
     <form method="post">
         {% csrf_token %}
-        <input type="hidden" name="all_clubs_members" value={{all_clubs_members}}></input>
+
         {{ registration_form.as_p }}
 
         <div class="button-container">
@@ -41,49 +41,14 @@
             placeholder: "Select invited users",
             allowClear: true
         });
+        const invitedClubsField = $('#id_invited_clubs');
+        invitedClubsField.select2({
+            placeholder: "Select invited clubs",
+            allowClear: true
+        });
 
 
         
-        function updateinvitedusers() { 
-            const invitedclubs = document.getElementById("id_invited_club");
-            const invitedusers = document.getElementById("id_invited_users");
-
-            // Get selected clubs
-            const selectedClubs = Array.from(invitedclubs.selectedOptions).map(option => option.value);
-
-            // Deselect all current options in invitedusers
-            Array.from(invitedusers.options).forEach(option => option.selected = false);
-
-            // If no club is selected, exit the function
-            if (selectedClubs.length === 0) {
-                return;
-            }
-
-            // Iterate over selected clubs and select corresponding members
-            selectedClubs.forEach(clubId => {
-                all_clubs_members.forEach(clubData => {
-                    if (clubData.club.id == clubId) {
-                        const clubMembers = clubData.all_members;
-                        console.log(clubMembers);
-                        // Select the members of the current club in invitedusers
-                        clubMembers.forEach(member => {
-                            console.log(invitedusers.options);
-                            const matchingOption = Array.from(invitedusers.options).find(
-                                option => option.value == member.id
-                            );
-                            if (matchingOption) {
-                                matchingOption.selected = true;
-                            }
-                        });
-                    }
-                });
-                invitedUsersField.trigger('change');
-            });
-        }
-
-        // Attach the function to the change event
-        document.getElementById("id_invited_club").addEventListener("change", updateinvitedusers);
-
     });
 </script>
 {% endblock pages %}

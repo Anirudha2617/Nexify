@@ -46,6 +46,10 @@ class ClubDetails(models.Model):
     def __str__(self):
         return self.club_name
 
+    @classmethod
+    def get_members(cls , club):
+        return ClubMember.objects.filter(club = club)
+
 
 class ClubMember(models.Model):
     club = models.ForeignKey(ClubDetails, on_delete=models.CASCADE, related_name='members')

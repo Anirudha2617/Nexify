@@ -229,7 +229,7 @@
                             </form>
                     </li>
                 {% empty %}
-                    <li>No forms available for this type</li>
+                    <li>No opportunity_type available at the moment</li>
                 {% endfor %}
             </ul>
         </section>
@@ -240,7 +240,7 @@
                 {% for response in hosted_events %}
                     <li class="form-card">                        
                         <div class="form-content">
-                            <a href="{% url 'event:response_detail' response_id=response.id %}" class="form-title">{{ response.id|slice:":21"}}{% if response.title|length > 21 %}...{% endif %}</a>
+                            <a href="{% url 'event:response_detail' response_id=response.id %}" class="form-title">{{ response.opportunity_title|slice:":21"}}{% if response.opportunity_title|length > 21 %}...{% endif %}</a>
                             <p class="form-description">
                                 {{ response.about_opportunity|slice:":30" }}{% if response.about_opportunity|length > 30 %}...{% endif %}
                             </p>
@@ -258,7 +258,7 @@
                 {% for response in invited_events %}
                     <li class="form-card">                        
                         <div class="form-content">
-                            <a href="{% url 'event:response_detail' response_id=response.id %}" class="form-title">{{ response.id|slice:":21"}}{% if response.title|length > 21 %}...{% endif %}</a>
+                            <a href="{% url 'event:response_detail' response_id=response.id %}" class="form-title">{{ response.opportunity_title|slice:":21"}}{% if response.opportunity_title|length > 21 %}...{% endif %}</a>
                             <p class="form-description">
                                 {{ response.about_opportunity|slice:":30" }}{% if response.about_opportunity|length > 30 %}...{% endif %}
                             </p>

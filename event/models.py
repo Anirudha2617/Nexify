@@ -268,11 +268,11 @@ class Registration_details(models.Model):
 
     visibility = models.CharField(choices=VISIBILITY_TYPE, max_length=20, default=INDIVIDUAL)
     compulsary = models.BooleanField(default=False)
-    invited_users = models.ManyToManyField(User, related_name='invited_events')
-    accepted_users = models.ManyToManyField(User, related_name='accepted_events')
-    rejected_users = models.ManyToManyField(User, related_name='rejected_events')
+    invited_users = models.ManyToManyField(User, related_name='invited_events', blank=True)
+    accepted_users = models.ManyToManyField(User, related_name='accepted_events', blank=True)
+    rejected_users = models.ManyToManyField(User, related_name='rejected_events', blank=True)
     
-    invited_club = models.ForeignKey(ClubDetails, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name='events')
+    invited_club = models.ManyToManyField(ClubDetails, blank=True, related_name='events')
 
 
     platform = models.BooleanField()

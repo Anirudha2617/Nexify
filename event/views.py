@@ -357,25 +357,39 @@ def view_response(request, response_id):
 
 def form_registration_details(request ,form_id):
 
-    all_clubs_members = []
+    all_clubs = []
 
     user_in_clubs=ClubMember.objects.filter(user=request.user)
 
     for club in user_in_clubs:
         club_detail = ClubDetails.objects.filter(club_pk=club.club.club_pk, branch_pk=club.club.branch_pk).first()
-        all_members = ClubMember.objects.filter( club = club_detail )
-        all_clubs_members.append({
-            'club': club_detail,
-            'all_members': all_members
-        })
+        all_clubs.append(club_detail)
 
     if request.method == 'POST':
-        registration_form = FormRegistrationDetailsForm(request.POST, form_id=form_id)
+        registration_form = FormRegistrationDetailsForm(request.POST, form_id=form_id, all_clubs = all_clubs)
         if registration_form.is_valid():
-            invited_users = registration_form.cleaned_data.get("invited_users")
+            invited_users = registration_form.cleaned_data.get("invited_users",None)
+            all_clubs = registration_form.cleaned_data.get('invited_club', None)
+
+            registration_form = registration_form.save(user=request.user , form = get_object_or_404(Form, pk=form_id))
+
+            for club in all_clubs:
+                for user in ClubDetails.get_members(club):
+                    user = user.user
+                    if Notification.get_rejectednotification(request.user, user , registration_form) or ( not Notification.get_notification(request.user, user , registration_form)):
+                        notification1 = Notification.create_notification(
+                        user=user,
+                        title="Approve Request",
+                        message=f"This is an request to join {registration_form.form.title} \n Hosted by {registration_form.form.created_by}",                        notification_type=Notification.INFO,
+                        sent_from = request.user,
+                        event = registration_form
+                        )
+                        if notification1 :
+                            print("notification created for:", user , notification1.id)
+                    else:
+                        print("notification already exists for:", user)
 
             print("Registration form created successfully ....................................................................")
-            registration_form = registration_form.save(user=request.user , form = get_object_or_404(Form, pk=form_id))
             for user in invited_users:
                 if Notification.get_rejectednotification(request.user, user , registration_form) or ( not Notification.get_notification(request.user, user , registration_form)):
                     notification1 = Notification.create_notification(
@@ -390,19 +404,18 @@ def form_registration_details(request ,form_id):
                         print("notification created for:", user , notification1.id)
                 else:
                     print("notification already exists for:", user)
-                if notification1 :
-                    print("notification created for:", user , notification1.id)
 
 
     
 
             return redirect('event:view_forms')  # Redirect after saving
     else:
-        registration_form = FormRegistrationDetailsForm( form_id = form_id , all_clubs_members = all_clubs_members)
+        registration_form = FormRegistrationDetailsForm( form_id = form_id , all_clubs = all_clubs)
 
-    return render(request, 'event/create_registration.html', {'registration_form': registration_form, 'all_clubs_members': all_clubs_members})
+    return render(request, 'event/create_registration.html', {'registration_form': registration_form })
 
 def edit_form_registrationdetails(request ,form_id):
+    
     print(" yupp..............................................")
     form = get_object_or_404(Form,pk = form_id)
     registration = form.registration_details.all()
@@ -414,34 +427,55 @@ def edit_form_registrationdetails(request ,form_id):
 
     print("Registration Form:",registration)
 
-
-    if request.method == "POST":
-        # Bind the form to the POST data
-        form = FormRegistrationDetailsForm(request.POST, instance=registration)
-        if form.is_valid():
-            invited_users = form.cleaned_data.get('invited_users', None)
-            form = form.save()  # Save changes to the object
-            for user in invited_users:
-                if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
-                    notification1 = Notification.create_notification(
-                    user=user,
-                    title="Approve Request",
-                    message=f"This is an request to join {form.form.title} \n Hosted by {form.form.created_by}",
-                    notification_type=Notification.INFO,
-                    sent_from = request.user,
-                    event = registration
-                    )
-                    if notification1 :
-                        print("notification created for:", user , notification1.id)
-                else:
-                    print("notification already exists for:", user)
+    if request.user == registration.response.created_by:
+        if request.method == "POST":
+            # Bind the form to the POST data
+            form = FormRegistrationDetailsForm(request.POST, instance=registration)
+            if form.is_valid():
+                all_clubs = form.cleaned_data.get('invited_club', None)
+                invited_users = form.cleaned_data.get('invited_users', None)
+                form = form.save()  # Save changes to the object
+                    
+                for club in all_clubs:
+                    for user in ClubDetails.get_members(club):
+                        user = user.user
+                        if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
+                            notification1 = Notification.create_notification(
+                            user=user,
+                            title="Approve Request",
+                            message=f"This is an request to join {form.form.title} \n Hosted by {form.form.created_by}",
+                            notification_type=Notification.INFO,
+                            sent_from = request.user,
+                            event = registration
+                            )
+                            if notification1 :
+                                print("notification created for:", user , notification1.id)
+                        else:
+                            print("notification already exists for:", user)
+                for user in invited_users:
+                    if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
+                        notification1 = Notification.create_notification(
+                        user=user,
+                        title="Approve Request",
+                        message=f"This is an request to join {form.form.title} \n Hosted by {form.form.created_by}",
+                        notification_type=Notification.INFO,
+                        sent_from = request.user,
+                        event = registration
+                        )
+                        if notification1 :
+                            print("notification created for:", user , notification1.id)
+                    else:
+                        print("notification already exists for:", user)
 
 
             
             return redirect('event:view_response', response_id = registration.response.id)  # Replace with your success page
+        else:
+            # Prepopulate the form with the object's data
+            form = FormRegistrationDetailsForm(instance=registration)
     else:
-        # Prepopulate the form with the object's data
-        form = FormRegistrationDetailsForm(instance=registration)
+        print(request.user ,  registration.response.created_by)
+        return HttpResponseForbidden("You are not authorized to edit this .")
 
     return render(request, 'event/create_registration.html', {'registration_form': form, 'all_clubs_members': None})
 
@@ -606,7 +640,6 @@ import json
 def registration_details(request ,response_id):
     for user in User.objects.all():
         print(user.id , user.username)
-    all_clubs_members = []
     all_clubs = []
 
     user_in_clubs=ClubMember.objects.filter(user=request.user)
@@ -614,27 +647,32 @@ def registration_details(request ,response_id):
     for club in user_in_clubs:
         club_detail = ClubDetails.objects.filter(club_pk=club.club.club_pk, branch_pk=club.club.branch_pk).first()
         all_clubs.append(club_detail)
-        club_detail_dict = {
-            'id': club_detail.id,
-            'name': club_detail.club_name
-        }
-        all_members = ClubMember.objects.filter( club = club_detail )
-        all_members_list = [
-            {'id': member.id, 'name': member.user.username}  # Example fields
-            for member in all_members
-        ]
-        all_clubs_members.append({
-            'club': club_detail_dict,
-            'all_members': all_members_list
-        })
+
     
     if request.method == 'POST':
         registration_form = RegistrationDetailsForm(request.POST, response_id=response_id, all_clubs = all_clubs)
         if registration_form.is_valid():
-            invited_users = registration_form.cleaned_data.get("invited_users")
+            invited_users = registration_form.cleaned_data.get("invited_users",None)
+            all_clubs = registration_form.cleaned_data.get('invited_club', None)
 
-            print("Registration form created successfully ....................................................................")
             registration_form = registration_form.save()
+            for club in all_clubs:
+                for user in ClubDetails.get_members(club):
+                    user = user.user
+                    if Notification.get_rejectednotification(request.user, user , registration_form) or ( not Notification.get_notification(request.user, user , registration_form)):
+                        notification1 = Notification.create_notification(
+                        user=user,
+                        title="Approve Request",
+                        message=f"This is an request to join {registration_form.response.opportunity_title} \n Hosted by {registration_form.response.created_by}",
+                        notification_type=Notification.INFO,
+                        sent_from = request.user,
+                        event = registration_form
+                        )
+                        if notification1 :
+                            print("notification created for:", user , notification1.id)
+                    else:
+                        print("notification already exists for:", user)
+                        
             for user in invited_users:
                 if Notification.get_rejectednotification(request.user, user , registration_form) or ( not Notification.get_notification(request.user, user , registration_form)):
                     notification1 = Notification.create_notification(
@@ -653,22 +691,41 @@ def registration_details(request ,response_id):
 
             return redirect('event:view_forms')  # Redirect after saving
     else:
-        registration_form = RegistrationDetailsForm( response_id = response_id , all_clubs_members = all_clubs_members,  all_clubs = all_clubs)
+        registration_form = RegistrationDetailsForm( response_id = response_id ,  all_clubs = all_clubs)
 
-    return render(request, 'event/create_registration.html', {'registration_form': registration_form, 'all_clubs_members': json.dumps(all_clubs_members, cls=DjangoJSONEncoder) , 'all_clubs': all_clubs})
+    return render(request, 'event/create_registration.html', {'registration_form': registration_form })
 
 def edit_registrationdetails(request ,registration_id):
 
     print(" yupp..............................................")
     registration = get_object_or_404(Registration_details, pk=registration_id)
     print("Registration Form:",registration)
-    if request.user == registration.created_by:
+    if request.user == registration.response.created_by:
         if request.method == "POST":
             # Bind the form to the POST data
             form = RegistrationDetailsForm(request.POST, instance=registration)
             if form.is_valid():
+                all_clubs = form.cleaned_data.get('invited_club', None)
+
                 invited_users = form.cleaned_data.get('invited_users', None)
                 form = form.save()  # Save changes to the object
+                for club in all_clubs:
+                    for user in ClubDetails.get_members(club):
+                        user = user.user
+                        if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
+                            notification1 = Notification.create_notification(
+                            user=user,
+                            title="Approve Request",
+                            message=f"This is an request to join {form.response.opportunity_title} \n Hosted by {form.response.created_by}",
+                            notification_type=Notification.INFO,
+                            sent_from = request.user,
+                            event = registration
+                            )
+                            if notification1 :
+                                print("notification created for:", user , notification1.id)
+                        else:
+                            print("notification already exists for:", user)
+
                 for user in invited_users:
                     if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
                         notification1 = Notification.create_notification(
@@ -684,8 +741,6 @@ def edit_registrationdetails(request ,registration_id):
                     else:
                         print("notification already exists for:", user)
 
-
-                
                 return redirect('event:response_detail', response_id = registration.response.id)  # Replace with your success page
         else:
             # Prepopulate the form with the object's data
@@ -693,4 +748,5 @@ def edit_registrationdetails(request ,registration_id):
 
         return render(request, 'event/create_registration.html', {'registration_form': form, 'all_clubs_members': None})
     else:
+        print(request.user ,  registration.response.created_by)
         return HttpResponseForbidden("You are not authorized to edit this .")

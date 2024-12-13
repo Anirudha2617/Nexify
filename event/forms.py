@@ -99,11 +99,6 @@ class RegistrationDetailsForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        visibility = cleaned_data.get('visibility')
-        invited_users = cleaned_data.get('invited_users')
-
-        if visibility != 'Public' and not invited_users:
-            raise forms.ValidationError("You must specify invited users if visibility is not public.")
 
         return cleaned_data
 
@@ -111,8 +106,7 @@ class FormRegistrationDetailsForm(forms.ModelForm):
     class Meta:
         model = Registration_details
         fields = [
-            'form',
-            'created_by',
+            'form', 
             'platform', 
             'participation_type',
             'minimum_members',
@@ -120,8 +114,9 @@ class FormRegistrationDetailsForm(forms.ModelForm):
             'registration_start', 
             'registration_end', 
             'number_of_registration',
-            'visibility',
             'compulsary',
+            'visibility',
+            'invited_club',
             'invited_users',
         ]
         widgets = {
@@ -136,7 +131,15 @@ class FormRegistrationDetailsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         form_id = kwargs.pop('form_id', None)
         all_clubs_members = kwargs.pop('all_clubs_members', None)
+        all_clubs = kwargs.pop('all_clubs', None)
         super().__init__(*args, **kwargs)
+
+        if all_clubs:
+            try:
+                self.fields['invited_club'].queryset = all_clubs
+            except :
+                all_clubs = ClubDetails.objects.filter(pk__in=[obj.pk for obj in all_clubs])
+                self.fields['invited_club'].queryset = all_clubs
 
         if form_id:
             try:
@@ -147,16 +150,10 @@ class FormRegistrationDetailsForm(forms.ModelForm):
                 raise forms.ValidationError(f"Form with ID {form_id} does not exist.")
 
         # Hide invited_users field initially
-        if self.initial.get('visibility') == 'public':
-            self.fields['invited_users'].widget = forms.HiddenInput()
+
 
     def clean(self):
         cleaned_data = super().clean()
-        visibility = cleaned_data.get('visibility')
-        invited_users = cleaned_data.get('invited_users')
-
-        if visibility != 'Public' and not invited_users:
-            raise forms.ValidationError("You must specify invited users if visibility is not public.")
 
         return cleaned_data
 
