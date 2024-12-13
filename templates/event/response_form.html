@@ -1,78 +1,180 @@
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Response Form</title>
-    
-    <!-- Include CKEditor scripts -->
-    <script src="https://cdn.ckeditor.com/ckeditor5/36.0.1/classic/ckeditor.js"></script>
-    
-    <style>
-        .hidden {
-            display: none;
-        }
-    </style>
-    <style>
-        .visibility-options, .mode-options {
-            display: flex;
-            gap: 20px;
-            margin-top: 10px;
-        }
-    
-        .visibility-option, .mode-option {
-            position: relative;
-            cursor: pointer;
-            display: block;
-        }
-    
-        .visibility-option input[type="radio"], .mode-option input[type="radio"] {
-            display: none;
-        }
-    
-        .option-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            width: 200px;
-            height: 120px;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            background-color: #f9f9f9;
-        }
-    
-        .option-box .icon {
-            font-size: 30px;
-            margin-bottom: 10px;
-        }
-    
-        .option-box .option-title {
-            font-size: 14px;
-            font-weight: bold;
-        }
-    
-        .option-box .option-description {
-            font-size: 12px;
-            color: #666;
-        }
-    
-        input[type="radio"]:checked + .option-box, .mode-option input[type="radio"]:checked + .option-box {
-            border-color: #007bff;
-            background-color: #e7f3ff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-    </style>
-</head>
+{% extends "allauth/layouts/main_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load allauth account %}
+{% block head_title %}
+{% trans "Profile" %}
+{% endblock head_title %}
+{% block stylesheet %}
+<script src="https://cdn.ckeditor.com/ckeditor5/36.0.1/classic/ckeditor.js"></script>
 
-<body>
-    <h1>Submit Your Response</h1>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 2rem;
+        color: #f1f1f1;
+        margin-bottom: 20px;
+    }
+
+    form {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #1e1e1e;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6);
+    }
+
+    div[id$='wrapper'] {
+        margin-bottom: 15px;
+    }
+
+    label {
+        font-weight: bold;
+        margin-bottom: 5px;
+        display: block;
+        font-size: 0.95rem;
+        color: #cfcfcf;
+    }
+
+    input[type="text"], input[type="url"], select, textarea {
+        width: 100%;
+        padding: 10px;
+        font-size: 1rem;
+        border: 1px solid #333;
+        border-radius: 5px;
+        background-color: #262626;
+        color: #e0e0e0;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    input[type="text"]:focus, input[type="url"]:focus, select:focus, textarea:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        outline: none;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .visibility-options, .mode-options {
+        display: flex;
+        gap: 15px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+
+    .visibility-option, .mode-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        flex: 1 1 150px;
+        max-width: 200px;
+        margin-bottom: 10px;
+    }
+
+    .visibility-option input[type="radio"], .mode-option input[type="radio"] {
+        display: none;
+    }
+
+    .option-box {
+        width: 100%;
+        text-align: center;
+        padding: 15px;
+        border: 2px solid #333;
+        border-radius: 10px;
+        background-color: #1e1e1e;
+        transition: transform 0.3s, border-color 0.3s, background-color 0.3s;
+    }
+
+    .option-box .icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: #bbb;
+    }
+
+    .option-box .option-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #ddd;
+    }
+
+    .option-box:hover {
+        transform: scale(1.05);
+        border-color: #007bff;
+        background-color: #2a2a2a;
+    }
+
+    input[type="radio"]:checked + .option-box {
+        border-color: #007bff;
+        background-color: #2a2a2a;
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+    }
+
+    button[type="submit"] {
+        width: 100%;
+        padding: 10px 15px;
+        font-size: 1rem;
+        color: #fff;
+        background-color: #007bff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    button[type="submit"]:hover {
+        background-color: #0056b3;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    button[type="submit"]:active {
+        background-color: #003f7f;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .option-box {
+            padding: 10px;
+        }
+
+        .option-box .icon {
+            font-size: 1.5rem;
+        }
+
+        .option-box .option-title {
+            font-size: 0.9rem;
+        }
+
+        button[type="submit"] {
+            font-size: 0.9rem;
+        }
+    }
+</style>
+
+
+{% endblock stylesheet %}
+{% block pages %}
+
+    <title>Response Form</title>
+    <h1>Host your event</h1>
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
-
-
-
         <!-- Logo Upload -->
         <div id="logo-wrapper">
             {{ form.logo.label_tag }}
@@ -171,38 +273,29 @@
 
         <button type="submit">Submit</button>
     </form>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Initialize CKEditor for the about_opportunity field
             ClassicEditor
                 .create(document.querySelector('#id_about_opportunity'))
                 .catch(error => {
-                    console.error(error);
+                    console.error("Error initializing CKEditor:", error);
                 });
-        });
-    </script>
-</body>
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const opportunityTypeField = document.getElementById('id_opportunity_type');
-            const subTypeField = document.getElementById('id_opportunity_sub_type');
-            const subTypeWrapper = document.getElementById('opportunity-sub-type-wrapper');
-
-            // Initially hide the sub-type wrapper
-            subTypeWrapper.classList.add('hidden');
-
-            opportunityTypeField.addEventListener('change', function () {
-                const selectedType = this.value;
-
+    
+            // Function to update sub-type choices based on selected opportunity type
+            function updateSubTypeChoices() {
+                const opportunityTypeField = document.getElementById('id_opportunity_type');
+                const subTypeField = document.getElementById('id_opportunity_sub_type');
+                const subTypeWrapper = document.getElementById('opportunity-sub-type-wrapper');
+                
+                const selectedType = opportunityTypeField.value;
+    
                 if (!selectedType) {
                     subTypeField.innerHTML = '<option value="">---------</option>';
                     subTypeWrapper.classList.add('hidden');
                     return;
                 }
-
+    
                 fetch("{% url 'event:get_sub_type_choices' %}?opportunity_type=" + encodeURIComponent(selectedType))
                     .then(response => response.json())
                     .then(data => {
@@ -223,9 +316,29 @@
                         console.error("Failed to fetch sub-type choices:", error);
                         subTypeWrapper.classList.add('hidden');
                     });
-            });
+            }
+    
+            // Set default opportunity type and update sub-types on page load
+            window.onload = function () {
+                const opportunityTypeField = document.getElementById('id_opportunity_type');
+                const subTypeWrapper = document.getElementById('opportunity-sub-type-wrapper');
+    
+                // Set default value for opportunity type field
+                if (opportunityTypeField && opportunityTypeField.options.length >{{event_no}}) {
+                    opportunityTypeField.value = opportunityTypeField.options[{{event_no}}].value;
+                }
+    
+                // Initially hide the sub-type wrapper
+                subTypeWrapper.classList.add('hidden');
+    
+                // Update sub-type options based on the default selected value
+                updateSubTypeChoices();
+            };
+    
+            // Attach change event listener to update sub-types dynamically
+            document.getElementById('id_opportunity_type').addEventListener('change', updateSubTypeChoices);
         });
     </script>
-</body>
 
-</html>
+
+{% endblock pages %}

@@ -44,14 +44,4 @@ class AnswerAdmin(admin.ModelAdmin):
     list_display = ('response', 'question', 'answer_text')
     list_filter = ('question',)
 
-# @admin.register(Registration_details)
-# class RegisterAdmin(admin.ModelAdmin):
-#     list_display = (
-#     'response' ,
-#     'platform' ,
-#     'participation_type',
-#     'registration_start', 
-#     'registration_end' ,
-#     'number_of_registration' 
-#     )
-#     list_filter = ('response', 'registration_start')
+

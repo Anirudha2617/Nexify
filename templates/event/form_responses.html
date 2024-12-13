@@ -72,6 +72,26 @@
                         </li>
                     {% endfor %}
                 </ul>
+
+                
+                {%for extra_response in response.extra_responses.all %}
+                    <p>Submitted on: {{ extra_response.created_at }}</p>
+                    <ul>
+                        {% for answer in extra_response.answers.all %}
+                            <li>
+                                <strong>{{ answer.question.text }}:</strong> 
+                                {% if answer.answer_text %}
+                                    {{ answer.answer_text }}
+                                {% endif %}
+                                
+                                {% if answer.answer_image %}
+                                    <br>
+                                    <img src="{{ answer.answer_image.url }}" alt="Uploaded Image" width="200" height="auto">
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endfor %}
                 <hr>
             {% endfor %}
         {% else %}

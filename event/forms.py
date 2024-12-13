@@ -2,6 +2,7 @@ from django import forms
 from .models import Form, Question ,ExtraDetails,  Response, Registration_details, Notification
 from home.models import UserProfile
 from django.contrib.auth.models import User
+from club.models import ClubMember, ClubDetails
 
 
 class FormCreateForm(forms.ModelForm):
@@ -24,7 +25,6 @@ class FormCreateForm(forms.ModelForm):
         else:
             print("User not provided")
 
-
 class FormCreateExtraDetails(forms.ModelForm):
     Model = forms.ModelChoiceField(
         queryset=None,
@@ -45,7 +45,6 @@ class FormCreateExtraDetails(forms.ModelForm):
         # Set the initial value for created_by to the current user's UserProfile instance
         self.fields['Model'].initial = Form.objects.get(id = formid)
 
-
 class RegistrationDetailsForm(forms.ModelForm):
     class Meta:
         model = Registration_details
@@ -58,11 +57,15 @@ class RegistrationDetailsForm(forms.ModelForm):
             'registration_start', 
             'registration_end', 
             'number_of_registration',
-            'visibility',
             'compulsary',
+            'visibility',
+            'invited_club',
             'invited_users',
+            
+            
         ]
         widgets = {
+
             'response': forms.HiddenInput(),  # Hide the form field
             'registration_start': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
             'registration_end': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
@@ -73,7 +76,15 @@ class RegistrationDetailsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         response_id = kwargs.pop('response_id', None)
         all_clubs_members = kwargs.pop('all_clubs_members', None)
+        all_clubs = kwargs.pop('all_clubs', None)
         super().__init__(*args, **kwargs)
+
+        if all_clubs:
+            try:
+                self.fields['invited_club'].queryset = all_clubs
+            except :
+                all_clubs = ClubDetails.objects.filter(pk__in=[obj.pk for obj in all_clubs])
+                self.fields['invited_club'].queryset = all_clubs
 
         if response_id:
             try:
@@ -96,6 +107,65 @@ class RegistrationDetailsForm(forms.ModelForm):
 
         return cleaned_data
 
+class FormRegistrationDetailsForm(forms.ModelForm):
+    class Meta:
+        model = Registration_details
+        fields = [
+            'form',
+            'created_by',
+            'platform', 
+            'participation_type',
+            'minimum_members',
+            'maximum_members',
+            'registration_start', 
+            'registration_end', 
+            'number_of_registration',
+            'visibility',
+            'compulsary',
+            'invited_users',
+        ]
+        widgets = {
+            'form': forms.HiddenInput(),  
+            'created_by': forms.HiddenInput(),  
+            'registration_start': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'registration_end': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'number_of_registration': forms.NumberInput(attrs={'min': 1, 'step': 1}),
+            'participation_type': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        form_id = kwargs.pop('form_id', None)
+        all_clubs_members = kwargs.pop('all_clubs_members', None)
+        super().__init__(*args, **kwargs)
+
+        if form_id:
+            try:
+                form_instance = Form.objects.get(id=form_id)
+                self.fields['form'].initial = form_instance
+                print("Form initialized succesfully....")
+            except Form.DoesNotExist:
+                raise forms.ValidationError(f"Form with ID {form_id} does not exist.")
+
+        # Hide invited_users field initially
+        if self.initial.get('visibility') == 'public':
+            self.fields['invited_users'].widget = forms.HiddenInput()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        visibility = cleaned_data.get('visibility')
+        invited_users = cleaned_data.get('invited_users')
+
+        if visibility != 'Public' and not invited_users:
+            raise forms.ValidationError("You must specify invited users if visibility is not public.")
+
+        return cleaned_data
+
+    def save(self, user = None , form = None ,  *args, **kwargs):
+        if user:
+            self.instance.created_by = user
+        if form:
+            self.instance.form = form
+        return super().save(*args, **kwargs)
 
 class NotificationForm(forms.ModelForm):
     class Meta:
@@ -154,3 +224,17 @@ class ResponseForm(forms.ModelForm):
         self.instance.created_by = user
         return super().save(*args, **kwargs)
         
+
+
+# function toggleInvitedUsersField() {
+#     if (visibilityField.value === "Public") {
+#         invitedUsersFieldWrapper.addClass('hidden');
+#         invitedUsersField.val(null).trigger('change'); // Clear selection
+#     } else {
+#         invitedUsersFieldWrapper.removeClass('hidden');
+#     }
+# }
+# // Initial state
+# toggleInvitedUsersField();
+# // Update on change
+# visibilityField.addEventListener("change", toggleInvitedUsersField);

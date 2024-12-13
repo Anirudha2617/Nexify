@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse , Http404
 from .models import Form, Question, Response, Answer, Registration_details, Notification
-from .forms import FormCreateForm, FormCreateExtraDetails , RegistrationDetailsForm, NotificationForm
+from .forms import FormCreateForm, FormCreateExtraDetails , RegistrationDetailsForm, NotificationForm, FormRegistrationDetailsForm, ResponseForm
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Form, Question, Response, Answer ,ExtraQuestion, ExtraAnswer, ExtraResponse, ExtraDetails
 from django.forms import modelformset_factory
@@ -10,67 +10,34 @@ from django.contrib.auth.models import User
 from club.models import ClubMember, ClubDetails
 from django.http import HttpResponseForbidden , HttpResponseRedirect
 from django.contrib import messages
+from django.http import JsonResponse
 
-def add_questions(request, form_id):
-    form = get_object_or_404(Form, id=form_id)
 
-    if request.method == 'POST':        
-        # Determine the number of questions dynamically based on the question_text keys in the POST data
-        num_questions = len([key for key in request.POST if key.startswith("question_text_")])
+def main_view(request):
+
+    opporttunity_type_data = Response.OPPORTUNITY_TYPES
+    opporttunity_type = []
+    for i in opporttunity_type_data:
+        opporttunity_type.append(i[0])
+
+    crated_forms = Form.objects.filter(created_by = request.user)
+    hosted_events = Response.objects.filter(created_by = request.user, form__isnull=True )
+
+    # Create an empty queryset for the 'Event' model (or any other model)
+    invited_events = Response.objects.none()
+    invited_forms = Response.objects.none()
+    
+    for i in ((request.user.accepted_events.all())):
         
-        # Loop through each question
-        for i in range(num_questions):
-            question_text = request.POST.get(f'question_text_{i}')
-            question_type = request.POST.get(f'question_type_{i}')
-            
-            if question_text and question_type:
-                # Create the question instance
-                question = Question.objects.create(
-                    form=form,
-                    text=question_text,
-                    question_type=question_type
-                )
-
-                # If the question type is Multiple Choice or Dropdown, handle the choices
-                if question_type in ['MC', 'DD']:
-                    # Retrieve and process choices
-                    choices = request.POST.getlist(f'choice_{i}[]')  # Get list of choices
-                    question.choices = ','.join(choices)  # Store as a comma-separated string
-                    question.save()  # Save the updated question with choices
+        
+        if i.form:
+            accepted_form = Form.objects.filter(id = i.form.id)
+            invited_forms = invited_forms | accepted_form
+        else:
+            accepted_response = Response.objects.filter(id = i.response.id)
+            invited_events = invited_events | accepted_response
 
 
-        # After saving all questions, redirect to the form detail page
-        return redirect('event:fill_form', form_id=form.id)
-
-    return render(request, 'apps/event/add_questionss.html', {'form': form})
-
-# Other views...
-def view_all_questions(request, form_id):
-    form = get_object_or_404(Form, id=form_id)
-    questions = form.questions.all()  # Get all the questions related to the form
-    return render(request, 'forms/view_all_questions.html', {'form': form, 'questions': questions})
-
-def form_responses(request, form_id):
-    """View to list all submissions of a specific form."""
-    form = get_object_or_404(Form, id=form_id)
-    responses = form.responses.all()  # Retrieve all responses for this form
-    return render(request, 'forms/form_responses.html', {'form': form, 'responses': responses})
-
-def view_forms(request):
-
-    # Assuming the Form model has a 'form_type' attribute
-    # Group forms by their 'form_type' attribute
-    form_types = Form.objects.values('form_type').distinct()  # Get distinct form types
-    
-    grouped_forms = {}  # Dictionary to hold grouped forms
-    
-    for form_type in form_types:
-        forms = Form.objects.filter(form_type=form_type['form_type'])
-        grouped_forms[form_type['form_type']] = forms  # Group forms by type
-    
-    print("Events" , Response.get_forms(request.user))
-
-    all_events = Response.objects.filter(created_by = request.user, form__isnull=True )
     all_titles = []
     # for events in all_events:
     #     title = events.form.questions.filter(text = 'Title')
@@ -82,58 +49,27 @@ def view_forms(request):
  
     # Passing the grouped forms to the template
     context = {
-        'grouped_forms': grouped_forms,
-        'all_events': all_events,
+        'crated_forms': crated_forms,
+        'invited_forms': invited_forms,
+        'hosted_events': hosted_events,
+        'invited_events': invited_events,
         'all_titles': all_titles,
         'all_notifications': all_notifications,
+        'opportunity_types': opporttunity_type,
         
     }
-    return render(request, 'forms/view_forms.html', context)
+    return render(request, 'event/view_forms.html', context)
     # return HttpResponse("Trying ....")
-
-def view_response(request, response_id):
-    response = get_object_or_404(Response, id=response_id)
-    related_objects = response.registration_details.all()
-    if related_objects :
-        for detail in related_objects:
-            registration = detail
-    else:
-        registration = None
-    try:
-        is_invited = (request.user in registration.accepted_users.all())
-
-    except:
-        is_invited = False
-
-    if (response.created_by == request.user) or (is_invited):
-        if (response.created_by != request.user) :
-            registration = None
-        
-        
-        form = get_object_or_404(Form, id=response.form.id)
-        all_extraresponses = response.extra_responses.all()
-        context = {
-            'form': form,
-            'main_response': response,
-            'all_extraresponses': all_extraresponses,
-            'response_id': response_id,
-            'registration' :registration,
-        }
-        return render(request ,  'forms/view_response.html' , context)
-    else:
-        return HttpResponseForbidden("You are not authorized to view this response.")
 
 def form_list(request):
     """View to list all forms."""
     from django.db.models import Q
-
     # Assuming `request.user` is the current user
     current_user = request.user
-
     # Query to get forms created by 'public' or the current user
     forms = Form.objects.all()
 
-    return render(request, 'forms/form_list.html', {'forms': forms})
+    return render(request, 'event/form_list.html', {'forms': forms})
 
 def create_form(request):
     if request.method == 'POST':
@@ -141,7 +77,7 @@ def create_form(request):
 
         if form.is_valid():
             if (form.cleaned_data.get('public') ):
-                form.instance.created_by = None
+                form.instance.is_public = True
             # Save the form
             new_form = form.save()
 
@@ -179,7 +115,7 @@ def create_form(request):
             #print("can proceed with new concepts...")
             return redirect('event:create_extradetails', form_id=form.id)
         else:
-            return redirect('event:participants_details', form_id=form.id)
+            return redirect('event:form_registration_details', form_id=form.id)
     else:
         #print("Hii" , request.user.pk)
         form = FormCreateForm(user=request.user)
@@ -188,8 +124,9 @@ def create_form(request):
     context ={
         'form': form ,
         'success': True,
+
     }
-    return render(request, 'forms/create_form.html', context)
+    return render(request, 'event/create_form.html', context)
 
 def create_extradetails(request, form_id):
     #print("Entered event:create_extradetails")
@@ -235,7 +172,8 @@ def create_extradetails(request, form_id):
             #print("Form type:",type(form))
             return redirect('event:create_extradetails' ,form_id = form.id)
 
-        return redirect('event:fill_form', form_id=form_id)
+
+        return redirect('event:form_registration_details', form_id=form_id)
     else:
         #print( "creating new forms..." )
         form = FormCreateExtraDetails(mainformid=form_id)
@@ -246,132 +184,8 @@ def create_extradetails(request, form_id):
         'form': form ,
         'success': True,
     }
-    return render(request, 'forms/create_extradetails.html', context)
+    return render(request, 'event/create_extradetails.html', context)
     pass
-
-# def form_detail(request, form_id):
-#     extrapages = False
-#     present_page = request.POST.get('present_page')
-#     if present_page is None:
-#         #print("No response")
-#         present_page = 0
-#     else:
-#         present_page = int(request.POST.get('present_page'))
-#     #print("Present_page:" , present_page)
-
-#     if present_page > 1:
-#         main_response = request.session.get('main_response')
-#         print(main_response,"    Main response..................")
-#         #print("form_id" , form_id)
-#         extrapages = True
-#         form = get_object_or_404(Form, id=form_id)
-#         form = form.extradetails.all()[present_page-1]
-#         #print("Old Extradetail object created")
-#         main_form = form.Model
-#         #print("Got the main form and their lists")
-#         extradetails = main_form.extradetails.all()
-#         pages =[]
-#         for i in extradetails:
-#             pages.append(i.title)
-#         #print(type(pages),pages)
-#         #print(present_page , type(present_page))
-#         form = extradetails[present_page-1]
-#         questions = form.questions.all()
-            
-#     else:
-#         #print("Form object created.")
-#         form = get_object_or_404(Form, id=form_id)
-#         questions = form.questions.all()
-#         extradetails = form.extradetails.all()
-#         pages =[]
-#         for i in extradetails:
-#             pages.append(i.title)
-#     #preparing the extra details
-
-#     # Prepare split choices for multiple choice and dropdown questions
-#     for question in questions:
-#         if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
-#             question.split_choices = question.choices.split(',') if question.choices else []
-
-    
-#     if request.method == 'POST':
-#         if extrapages:
-#             response = ExtraResponse(form = form , response = main_response)
-#             print("Added response")
-#             print("Extra response saving")
-
-#         else:
-#             response = Response(form=form)
-#             #print("Main response saving...")
-
-#         response.save()
-
-#         # Process each question's answer
-#         for question in questions:
-#   # Handle file upload for images
-#             if question.question_type == 'IMG':
-#                 answer_file = request.FILES.get(f'question_{question.id}')
-#                 if answer_file:
-#                     if extrapages:
-#                         ExtraAnswer.objects.create(response=response, question=question, answer_image=answer_file)
-#                     else:
-#                         Answer.objects.create(response=response, question=question, answer_image=answer_file)
-#             else:
-#                 # Handle text-based answers
-#                 answer_text = request.POST.get(f'question_{question.id}')
-#                 if answer_text:
-#                     if extrapages:
-#                         ExtraAnswer.objects.create(response=response, question=question, answer_text=answer_text)
-#                     else:
-#                         Answer.objects.create(response=response, question=question, answer_text=answer_text)
-#         #print("Response submission done...")
-#         #print("Page length:", len(pages))
-#         if (present_page < len(pages)):
-            
-
-#             if present_page == 1 :
-#                 #print("form_id" , form_id)
-#                 form = form.extradetails.all()[present_page-1]
-#                 questions = form.questions.all()
-#                 request.session['main_response'] = response 
-#                 #print(form ,form.id)
-
-#                 for question in questions:
-#                     if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
-#                         question.split_choices = question.choices.split(',') if question.choices else []
-
-#             if present_page > 1 :
-#                 request.session['main_response'] = main_response 
-#                 #print("form_id" , form_id)
-#                 form = main_form.extradetails.all()[present_page-1]
-#                 questions = form.questions.all()
-#                 #print(form ,form.id)
-
-#                 for question in questions:
-#                     if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
-#                         question.split_choices = question.choices.split(',') if question.choices else []
-
-
-                
-#             return render(request, 'forms/form_detail.html', {'form': form, 'questions': questions , 'pages': json.dumps(pages) ,'present_page': present_page})
-#         else:
-#             #print("End of pages list")
-#             return redirect('event:view_forms')
-        
-
-#         # Redirect to the same form to allow multiple submissions
-#         # return redirect('form_responses', form_id=form.id)
-
-#     return render(request, 'forms/form_detail.html', {'form': form, 'questions': questions , 'pages': json.dumps(pages) ,'present_page': present_page})
-
-def delete_form(request, form_id):
-    try:
-        form = Form.objects.get(id=form_id)
-        if request.method == 'POST':
-            form.delete()
-            return redirect('event:view_forms')  # Redirect to the form list after deletion
-    except Form.DoesNotExist:
-        raise Http404("Form not found")
 
 def fill_form(request, form_id):
         #print("Form object created.")
@@ -412,10 +226,12 @@ def fill_form(request, form_id):
             return redirect('event:fill_extradetails', form_id=form_id, response_id=response.id)
         else:
             print("goto fill participants details")
-            return HttpResponse("Succesfully submitted this response")
+            print("Response_id = " , response.id)
+            # return redirect( 'event:registration_details', response_id=response.id)
+            return HttpResponse(f"Succesfully submitted this response {response.id}")
     else:
         print("form went to render")
-        return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})
+        return render(request, 'event/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})
 
     pass
 
@@ -478,16 +294,68 @@ def fill_extradetails(request, form_id, response_id):
                 if question.question_type in ['MC', 'DD']:  # MC for multiple choice, DD for dropdown
                     question.split_choices = question.choices.split(',') if question.choices else []
             print(questions)
-            return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': present_page})
+            return render(request, 'event/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': present_page})
         else:
             return HttpResponse("Succesfully submitted this response")
 
 
     else:
         print("form went to render")
-        return render(request, 'forms/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})    
+        return render(request, 'event/fill_form.html', {'form': form, 'questions': questions , 'pages': pages , 'total_pages': len(pages) ,'present_page': 0})    
 
-def registration_details(request ,response_id):
+def view_form(request, form_id):
+    form = get_object_or_404(Form, id=form_id)
+    registration  = form.registration_details.all()
+    if registration :
+        for detail in registration:
+            registration = detail
+    else:
+        registration = None
+
+    if (form.created_by == request.user) :      
+        all_extraresponses = form.extradetails.all()
+        context = {
+            'form': form,
+            'all_extraresponses': all_extraresponses,
+            'registration' :registration,
+        }
+        return render(request ,  'event/view_form.html' , context)
+    else:
+        return HttpResponseForbidden("You are not authorized to view this response.")
+
+def view_response(request, response_id):
+    response = get_object_or_404(Response, id=response_id)
+    related_objects = response.registration_details.all()
+    if related_objects :
+        for detail in related_objects:
+            registration = detail
+    else:
+        registration = None
+    try:
+        is_invited = (request.user in registration.accepted_users.all())
+
+    except:
+        is_invited = False
+
+    if (response.created_by == request.user) or (is_invited):
+        if (response.created_by != request.user) :
+            registration = None
+        
+        
+        form = get_object_or_404(Form, id=response.form.id)
+        all_extraresponses = response.extra_responses.all()
+        context = {
+            'form': form,
+            'main_response': response,
+            'all_extraresponses': all_extraresponses,
+            'response_id': response_id,
+            'registration' :registration,
+        }
+        return render(request ,  'event/view_response.html' , context)
+    else:
+        return HttpResponseForbidden("You are not authorized to view this response.")
+
+def form_registration_details(request ,form_id):
 
     all_clubs_members = []
 
@@ -500,28 +368,28 @@ def registration_details(request ,response_id):
             'club': club_detail,
             'all_members': all_members
         })
-    # for i in all_clubs_members:
-    #     print(i)
 
-    
     if request.method == 'POST':
-        registration_form = RegistrationDetailsForm(request.POST, response_id=response_id)
+        registration_form = FormRegistrationDetailsForm(request.POST, form_id=form_id)
         if registration_form.is_valid():
             invited_users = registration_form.cleaned_data.get("invited_users")
 
             print("Registration form created successfully ....................................................................")
-            registration_form = registration_form.save()
+            registration_form = registration_form.save(user=request.user , form = get_object_or_404(Form, pk=form_id))
             for user in invited_users:
-                if Notification.get_notification(request.user, user , registration_form):
-                    pass
-                notification1 = Notification.create_notification(
-                user=user,
-                title="Approve Request",
-                message=f"This is an request to join {registration_form.response.form.title} \n Hosted by {registration_form.response.created_by}",
-                notification_type=Notification.INFO,
-                sent_from = request.user,
-                event = registration_form
-                )
+                if Notification.get_rejectednotification(request.user, user , registration_form) or ( not Notification.get_notification(request.user, user , registration_form)):
+                    notification1 = Notification.create_notification(
+                    user=user,
+                    title="Approve Request",
+                    message=f"This is an request to join {registration_form.form.title} \n Hosted by {registration_form.form.created_by}",
+                    notification_type=Notification.INFO,
+                    sent_from = request.user,
+                    event = registration_form
+                    )
+                    if notification1 :
+                        print("notification created for:", user , notification1.id)
+                else:
+                    print("notification already exists for:", user)
                 if notification1 :
                     print("notification created for:", user , notification1.id)
 
@@ -530,10 +398,109 @@ def registration_details(request ,response_id):
 
             return redirect('event:view_forms')  # Redirect after saving
     else:
-        registration_form = RegistrationDetailsForm( response_id = response_id , all_clubs_members = all_clubs_members)
+        registration_form = FormRegistrationDetailsForm( form_id = form_id , all_clubs_members = all_clubs_members)
 
-    return render(request, 'forms/create_registration.html', {'registration_form': registration_form, 'all_clubs_members': all_clubs_members})
+    return render(request, 'event/create_registration.html', {'registration_form': registration_form, 'all_clubs_members': all_clubs_members})
 
+def edit_form_registrationdetails(request ,form_id):
+    print(" yupp..............................................")
+    form = get_object_or_404(Form,pk = form_id)
+    registration = form.registration_details.all()
+    if registration :
+        registration = get_object_or_404(Registration_details, pk=registration[0].id)
+    else:
+        print("Redirectng .......................................................")
+        return redirect('event:form_registration_details', form_id = form_id)
+
+    print("Registration Form:",registration)
+
+
+    if request.method == "POST":
+        # Bind the form to the POST data
+        form = FormRegistrationDetailsForm(request.POST, instance=registration)
+        if form.is_valid():
+            invited_users = form.cleaned_data.get('invited_users', None)
+            form = form.save()  # Save changes to the object
+            for user in invited_users:
+                if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
+                    notification1 = Notification.create_notification(
+                    user=user,
+                    title="Approve Request",
+                    message=f"This is an request to join {form.form.title} \n Hosted by {form.form.created_by}",
+                    notification_type=Notification.INFO,
+                    sent_from = request.user,
+                    event = registration
+                    )
+                    if notification1 :
+                        print("notification created for:", user , notification1.id)
+                else:
+                    print("notification already exists for:", user)
+
+
+            
+            return redirect('event:view_response', response_id = registration.response.id)  # Replace with your success page
+    else:
+        # Prepopulate the form with the object's data
+        form = FormRegistrationDetailsForm(instance=registration)
+
+    return render(request, 'event/create_registration.html', {'registration_form': form, 'all_clubs_members': None})
+
+
+def add_questions(request, form_id):
+    form = get_object_or_404(Form, id=form_id)
+
+    if request.method == 'POST':        
+        # Determine the number of questions dynamically based on the question_text keys in the POST data
+        num_questions = len([key for key in request.POST if key.startswith("question_text_")])
+        
+        # Loop through each question
+        for i in range(num_questions):
+            question_text = request.POST.get(f'question_text_{i}')
+            question_type = request.POST.get(f'question_type_{i}')
+            
+            if question_text and question_type:
+                # Create the question instance
+                question = Question.objects.create(
+                    form=form,
+                    text=question_text,
+                    question_type=question_type
+                )
+
+                # If the question type is Multiple Choice or Dropdown, handle the choices
+                if question_type in ['MC', 'DD']:
+                    # Retrieve and process choices
+                    choices = request.POST.getlist(f'choice_{i}[]')  # Get list of choices
+                    question.choices = ','.join(choices)  # Store as a comma-separated string
+                    question.save()  # Save the updated question with choices
+
+
+        # After saving all questions, redirect to the form detail page
+        return redirect('event:fill_form', form_id=form.id)
+
+    return render(request, 'apps/event/add_questionss.html', {'form': form})
+
+# Other views...
+def view_all_questions(request, form_id):
+    form = get_object_or_404(Form, id=form_id)
+    questions = form.questions.all()  # Get all the questions related to the form
+    return render(request, 'event/view_all_questions.html', {'form': form, 'questions': questions})
+
+def form_responses(request, form_id):
+    """View to list all submissions of a specific form."""
+    form = get_object_or_404(Form, id=form_id)
+    responses = form.responses.all()  # Retrieve all responses for this form
+    return render(request, 'event/form_responses.html', {'form': form, 'responses': responses})
+
+def delete_form(request, form_id):
+    try:
+        form = Form.objects.get(id=form_id)
+        if request.method == 'POST':
+            form.delete()
+            return redirect('event:view_forms')  # Redirect to the form list after deletion
+    except Form.DoesNotExist:
+        raise Http404("Form not found")
+
+###To be done tomorrow
 def register(request ,response_id):
     member_in_club = []
     user_in_clubs=ClubMember.objects.filter(user=request.user)
@@ -551,77 +518,21 @@ def register(request ,response_id):
     return HttpResponse("registration done here")
 
 
-def edit_registrationdetails(request ,registration_id):
+def update_notification(request):
+    notification_id = request.GET.get('notificationId', None)
+    action = request.GET.get('action', None)
+    
+    try:
+        notification = get_object_or_404(Notification,id = notification_id)
+        if action == "accept":
+            notification.perform_action(True)
+        elif action == "reject":
+            notification.perform_action(False)
 
-    print(" yupp..............................................")
-    registration = get_object_or_404(Registration_details, pk=registration_id)
-    print("Registration Form:",registration)
+        return JsonResponse({'status': 'success', 'message': 'Notification updated successfully'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
 
-    if request.method == "POST":
-        # Bind the form to the POST data
-        form = RegistrationDetailsForm(request.POST, instance=registration)
-        if form.is_valid():
-
-            invited_users = form.cleaned_data.get('invited_users', None)
-            form = form.save()  # Save changes to the object
-            for user in invited_users:
-                if Notification.get_notification(request.user, user , registration):
-                    pass
-                else:
-                    notification1 = Notification.create_notification(
-                    user=user,
-                    title="Approve Request",
-                    message=f"This is an request to join {form.response.form.title} \n Hosted by {form.response.created_by}",
-                    notification_type=Notification.INFO,
-                    sent_from = request.user,
-                    event = registration
-                    )
-                    if notification1 :
-                        print("notification created for:", user , notification1.id)
-
-
-            
-            return redirect('event:view_response', response_id = registration.response.id)  # Replace with your success page
-    else:
-        # Prepopulate the form with the object's data
-        form = RegistrationDetailsForm(instance=registration)
-
-    return render(request, 'forms/create_registration.html', {'registration_form': form, 'all_clubs_members': None})
-
-
-
-from django.http import JsonResponse
-from django.shortcuts import render
-
-def handle_notification(request):
-    if request.method == "POST":
-        # Filter out all keys that start with "card-"
-        card_states = {key: value for key, value in request.POST.items() if key.startswith('card-')}
-
-        # Process each notification state
-        for card_id, action in card_states.items():
-            notification_id = card_id.replace('card-', '')  # Extract the ID
-            notification = get_object_or_404(Notification,id = notification_id)
-            if action == "accept":
-                notification.status = True
-                notification.mark_as_read()
-                notification.perform_action()
-            elif action == "reject":
-                notification.status = False
-                notification.mark_as_read()
-                notification.perform_action()
-            print(f"Notification ID: {notification_id}, Action: {action}")
-            # Add your logic here to mark as accepted/rejected, etc.
-            
-        previous_url = request.META.get('HTTP_REFERER', '/default-url/')  # Fallback URL in case the referer is not available
-        return HttpResponseRedirect(previous_url)
-
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-
-
-from django.http import JsonResponse
-from .models import Response
 
 def get_sub_type_choices(request):
     opportunity_type = request.GET.get('opportunity_type', None)
@@ -640,29 +551,146 @@ def get_sub_type_choices(request):
     return JsonResponse(data, safe=False)
 
 
-from .forms import ResponseForm
-
-def response_form_view(request):
+def create_event(request):
+    event_no = request.GET.get('event_no', None) 
+    if not event_no:
+        event_no = 1
     if request.method == 'POST':
 
         print("IN .....................")
         form = ResponseForm(request.POST, request.FILES )
         if form.is_valid():
-            form = form.save(user  =  request.user)
+            form = form.save(user = request.user)
             print(form.id)
+            return redirect( 'event:registration_details', response_id=form.id)
             return HttpResponse("Success")
         else:
             return HttpResponse("Failed")
     else:
         form = ResponseForm()
 
-    return render(request, 'forms/response_form.html', {'form': form})
+    return render(request, 'event/response_form.html', {'form': form ,'event_no': event_no})
 
-def response_detail_view(request, response_id):
+def event_view(request, response_id):
     # Get the Response object using the provided response_id
-    response = get_object_or_404(Response, pk=response_id)
+    response = get_object_or_404(Response, id=response_id)
+    related_objects = response.registration_details.all()
+    if related_objects :
+        for detail in related_objects:
+            registration = detail
+    else:
+        registration = None
+    try:
+        is_invited = (request.user in registration.accepted_users.all())
+    except:
+        is_invited = False
+
+    if (response.created_by == request.user) or (is_invited):  
+        
+        context = {
+            'response': response,
+            'response_id': response_id,
+            'registration' :registration,
+            'user' : request.user,
+        }
+        return render(request, 'event/response_detail.html', context)
+    else:
+        return HttpResponseForbidden("You are not authorized to view this response.")
 
     # Pass the Response object to the template for rendering
-    return render(request, 'forms/response_detail.html', {'response': response})
+    
+from django.shortcuts import render
+from django.core.serializers.json import DjangoJSONEncoder
+import json
+
+def registration_details(request ,response_id):
+    for user in User.objects.all():
+        print(user.id , user.username)
+    all_clubs_members = []
+    all_clubs = []
+
+    user_in_clubs=ClubMember.objects.filter(user=request.user)
+
+    for club in user_in_clubs:
+        club_detail = ClubDetails.objects.filter(club_pk=club.club.club_pk, branch_pk=club.club.branch_pk).first()
+        all_clubs.append(club_detail)
+        club_detail_dict = {
+            'id': club_detail.id,
+            'name': club_detail.club_name
+        }
+        all_members = ClubMember.objects.filter( club = club_detail )
+        all_members_list = [
+            {'id': member.id, 'name': member.user.username}  # Example fields
+            for member in all_members
+        ]
+        all_clubs_members.append({
+            'club': club_detail_dict,
+            'all_members': all_members_list
+        })
+    
+    if request.method == 'POST':
+        registration_form = RegistrationDetailsForm(request.POST, response_id=response_id, all_clubs = all_clubs)
+        if registration_form.is_valid():
+            invited_users = registration_form.cleaned_data.get("invited_users")
+
+            print("Registration form created successfully ....................................................................")
+            registration_form = registration_form.save()
+            for user in invited_users:
+                if Notification.get_rejectednotification(request.user, user , registration_form) or ( not Notification.get_notification(request.user, user , registration_form)):
+                    notification1 = Notification.create_notification(
+                    user=user,
+                    title="Approve Request",
+                    message=f"This is an request to join {registration_form.response.opportunity_title} \n Hosted by {registration_form.response.created_by}",
+                    notification_type=Notification.INFO,
+                    sent_from = request.user,
+                    event = registration_form
+                    )
+                    if notification1 :
+                        print("notification created for:", user , notification1.id)
+                else:
+                    print("notification already exists for:", user)
 
 
+            return redirect('event:view_forms')  # Redirect after saving
+    else:
+        registration_form = RegistrationDetailsForm( response_id = response_id , all_clubs_members = all_clubs_members,  all_clubs = all_clubs)
+
+    return render(request, 'event/create_registration.html', {'registration_form': registration_form, 'all_clubs_members': json.dumps(all_clubs_members, cls=DjangoJSONEncoder) , 'all_clubs': all_clubs})
+
+def edit_registrationdetails(request ,registration_id):
+
+    print(" yupp..............................................")
+    registration = get_object_or_404(Registration_details, pk=registration_id)
+    print("Registration Form:",registration)
+    if request.user == registration.created_by:
+        if request.method == "POST":
+            # Bind the form to the POST data
+            form = RegistrationDetailsForm(request.POST, instance=registration)
+            if form.is_valid():
+                invited_users = form.cleaned_data.get('invited_users', None)
+                form = form.save()  # Save changes to the object
+                for user in invited_users:
+                    if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
+                        notification1 = Notification.create_notification(
+                        user=user,
+                        title="Approve Request",
+                        message=f"This is an request to join {form.response.opportunity_title} \n Hosted by {form.response.created_by}",
+                        notification_type=Notification.INFO,
+                        sent_from = request.user,
+                        event = registration
+                        )
+                        if notification1 :
+                            print("notification created for:", user , notification1.id)
+                    else:
+                        print("notification already exists for:", user)
+
+
+                
+                return redirect('event:response_detail', response_id = registration.response.id)  # Replace with your success page
+        else:
+            # Prepopulate the form with the object's data
+            form = RegistrationDetailsForm(instance=registration)
+
+        return render(request, 'event/create_registration.html', {'registration_form': form, 'all_clubs_members': None})
+    else:
+        return HttpResponseForbidden("You are not authorized to edit this .")

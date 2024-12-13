@@ -1,0 +1,260 @@
+{% extends "allauth/layouts/main_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load allauth account %}
+{% block head_title %}
+{% trans "Profile" %}
+{% endblock head_title %}
+{% block stylesheet %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #121212;
+        color: #e0e0e0;
+        line-height: 1.6;
+    }
+    
+    h1 {
+        background-color: #1e88e5;
+        color: white;
+        text-align: center;
+        padding: 20px 0;
+        font-size: 2rem;
+        border-bottom: 5px solid #1565c0;
+    }
+    
+    .container {
+        width: 85%;
+        margin: 30px auto;
+        padding: 20px;
+        background-color: #1e1e1e;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+    
+    .main-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between; 
+        margin-bottom: 30px;
+        flex-wrap: nowrap; 
+    }
+    
+    .logo-section {
+        text-align: center;
+        margin-right: 20px;
+        margin-bottom: 0; 
+    }
+    
+    .logo-section img {
+        max-width: 250px; /* Increased size */
+        max-height: 250px; /* Increased size */
+        border-radius: 50%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        border: 3px solid #42a5f5;
+    }
+    
+    .text-section {
+        flex-grow: 1;
+        text-align: center; 
+        height :100%;
+    }
+    
+    .text-section h2 {
+        color: #42a5f5;
+        font-size: 2rem; /* Increased font size */
+        margin-bottom: 10px;
+        text-align: center; 
+        padding-right: 1rem;
+    }
+    
+    .text-section p {
+        color: #b0bec5;
+        font-size: 1.1rem;
+        text-align: right; /* Align the paragraph text to the left */
+        padding-right: 1rem;
+    }
+    
+    
+    /* Content Grid Layout */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    /* Card Styles */
+    .card {
+        background-color: #2a2a2a;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+    }
+    
+    .card h2 {
+        margin-bottom: 15px;
+        color: #42a5f5;
+        font-size: 1.3rem;
+        border-bottom: 2px solid #1e88e5;
+        padding-bottom: 5px;
+    }
+    
+    .card p {
+        color: #b0bec5;
+        font-size: 1rem;
+        margin: 10px 0;
+    }
+    
+    .card ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    
+    .card ul li {
+        background-color: #3a3a3a;
+        padding: 10px;
+        margin: 8px 0;
+        border-radius: 5px;
+        color: #e0e0e0;
+    }
+    
+    .card a {
+        color: #42a5f5;
+        text-decoration: none;
+    }
+    
+    .card a:hover {
+        text-decoration: underline;
+    }
+    
+    /* Categories, About, and Website Sections */
+    .categories,
+    .about,
+    .website {
+        margin-top: 20px;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    
+        .text-section h2 {
+            font-size: 1.8rem; /* Slightly smaller title on mobile */
+        }
+    
+        .logo-section img {
+            max-width: 120px; /* Decreased size for smaller screens */
+            max-height: 120px;
+        }
+    }
+    
+</style>
+{% endblock stylesheet %}
+{% block pages %}
+    <h1>Response Details</h1>
+    
+    <div class="container">
+        <!-- Main Heading (Logo + Opportunity Title + Created By) -->
+        <div class="main-heading">
+            <div class="logo-section">
+                {% if response.logo %}
+                    <img src="{{ response.logo.url }}" alt="Logo">
+                {% else %}
+                    <p class="no-info">No logo available</p>
+                {% endif %}
+            </div>
+            <div class="text-section">
+                <h2>{{ response.opportunity_title|default:"No title provided" }}</h2>
+                <p>{{ response.created_by|default:"No user present" }}</p>
+            </div>
+        </div>
+    
+        <!-- Content Grid Layout -->
+        <div class="content-grid">
+            <!-- Column 1 -->
+            <div class="left-column">
+                <div class="card">
+                    <h2>Organization</h2>
+                    <p>{{ response.organization|default:"No organization provided" }}</p>
+                </div>
+    
+                <div class="card">
+                    <h2>Opportunity Type</h2>
+                    <p>{{ response.opportunity_type|default:"No opportunity type selected" }}</p>
+                </div>
+    
+                <div class="card">
+                    <h2>Opportunity Sub-Type</h2>
+                    <p>{{ response.opportunity_sub_type|default:"No opportunity sub-type selected" }}</p>
+                </div>
+            </div>
+    
+            <!-- Column 2 -->
+            <div class="right-column">
+                <div class="card">
+                    <h2>Visibility</h2>
+                    <p>{{ response.visibility|default:"No visibility selected" }}</p>
+                </div>
+    
+                <div class="card">
+                    <h2>Categories</h2>
+                    {% if response.categories.all %}
+                        <ul>
+                            {% for category in response.categories.all %}
+                                <li>{{ category.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-info">No categories selected</p>
+                    {% endif %}
+                </div>
+    
+                <div class="card">
+                    <h2>About Opportunity</h2>
+                    <p>{{ response.about_opportunity|default:"No description provided"|safe }}</p>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Website Section -->
+        <div class="card website">
+            <h2>Website URL</h2>
+            {% if response.website_url %}
+                <p><a href="{{ response.website_url }}" target="_blank">{{ response.website_url }}</a></p>
+            {% else %}
+                <p class="no-info">No website URL provided</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    
+    {% for invited_users in registration.invited_users.all %}
+        <li>
+            {{invited_users}}
+        </li>
+    {% endfor %}
+    <a href="{% url 'event:register' response_id %}">Register</a>
+    {% if registration %}
+        {% if response.created_by == user %}
+        <a href="{% url 'event:edit_register' registration.id %}">Edit Registration</a>
+        {% endif %}
+        
+    {% endif %}
+
+{% endblock pages %}

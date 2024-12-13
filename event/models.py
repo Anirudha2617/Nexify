@@ -16,10 +16,12 @@ class Form(models.Model):
         blank=True,
         related_name='created_forms'
     )
+    club = models.ForeignKey(ClubDetails, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name='forms')
     form_type = models.CharField(max_length=40, default  = 'miscillineous')
     title = models.CharField(max_length=255)
     description = models.TextField()
     image = models.ImageField(upload_to='form_images/', blank=True, null=True)  # Store image file path
+    is_public = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
@@ -60,9 +62,10 @@ class Question(models.Model):
     
 class Response(models.Model):
     VISIBILITY_CHOICES = [
-        ('public', 'Open publicly on Unstop'),
+        ('public', 'Open publicly on Nexify'),
         ('invite', 'Invite Only'),
     ]
+
     OPPORTUNITY_TYPES = [
         ("General and case competition", "General and case competition"),
         ("Quizzes", "Quizzes"),
@@ -120,7 +123,7 @@ class Response(models.Model):
         try:
             return f'Response to {self.form.title} on {self.created_at}'
         except:
-            return f'Form to {self.opportunity_type} on {self.created_at}'
+            return f'Event to {self.opportunity_type} on {self.created_at}'
     def save(self, *args, **kwargs):
         if self.opportunity_type == "General and case competition":
             self._meta.get_field('opportunity_sub_type').choices = self.GENERAL_SUB_TYPES
@@ -260,11 +263,17 @@ class Registration_details(models.Model):
     ]
     response = models.ForeignKey(Response, related_name='registration_details', on_delete=models.CASCADE ,blank = True , null = True)
 
+    form = models.ForeignKey(Form, related_name='registration_details', on_delete=models.CASCADE ,blank = True , null = True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name='registration_details')
+
     visibility = models.CharField(choices=VISIBILITY_TYPE, max_length=20, default=INDIVIDUAL)
     compulsary = models.BooleanField(default=False)
-    invited_users = models.ManyToManyField(User, related_name='invited_forms')
-    accepted_users = models.ManyToManyField(User, related_name='accepted_forms')
-    rejected_users = models.ManyToManyField(User, related_name='rejected_forms')
+    invited_users = models.ManyToManyField(User, related_name='invited_events')
+    accepted_users = models.ManyToManyField(User, related_name='accepted_events')
+    rejected_users = models.ManyToManyField(User, related_name='rejected_events')
+    
+    invited_club = models.ForeignKey(ClubDetails, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name='events')
+
 
     platform = models.BooleanField()
     participation_type = models.CharField(choices=PARTICIPATION_TYPE, max_length=20, default=INDIVIDUAL)
@@ -302,7 +311,7 @@ class Notification(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Notification for {self.user.username}: {self.title}"
+        return f"Notification for {self.user.username}: {self.title}: {self.status}"
 
     # Methods
     def mark_as_read(self):
@@ -326,21 +335,35 @@ class Notification(models.Model):
 
     @classmethod
     def get_unread_notifications(cls, user):
-        return cls.objects.filter(user=user, is_read=False)
+         return cls.objects.filter(user=user, is_read=False)
+
+
+    @classmethod
+    def get_all_notifications(cls, user):
+         return cls.objects.filter(user=user)
 
     @classmethod
     def mark_all_as_read(cls, user):
         cls.objects.filter(user=user, is_read=False).update(is_read=True)
 
     @classmethod
+    def get_rejectednotification(cls, sent_by,sent_to,event ):
+        a = cls.objects.filter(sent_from=sent_by, event=event, user = sent_to , status = False)
+        from django.db.models import Q
+        a = a.filter(Q(status=False) | Q(status__isnull=True))
+        return a
+    
+    @classmethod
     def get_notification(cls, sent_by,sent_to,event ):
-        a = cls.objects.filter(sent_from=sent_by, event=event, user = sent_to)
+        a = cls.objects.filter(sent_from=sent_by, event=event, user = sent_to )
         return a
 
-    def perform_action(self):
+    def perform_action(self , status):
         """
         Perform action based on the `action_button` value.
         """
+        self.status = status
+        self.mark_as_read()
         if self.status:
             return self.action_true()
         else:
@@ -363,3 +386,27 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class Timeline(models.Model):
+    response = models.ForeignKey(
+        'Response',  # Use string format to avoid circular imports
+        related_name='timelines',  # Use plural and lowercase for related_name
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True
+    )
+    date = models.DateTimeField(verbose_name="Event Date")  # Add verbose name for clarity in admin panel
+    event = models.CharField(max_length=100, verbose_name="Event Description")  # Increased max_length for flexibility
+
+    class Meta:
+        verbose_name = "Timeline Event"
+        verbose_name_plural = "Timeline Events"
+        ordering = ['-date']  # Order by date descending by default
+
+    def __str__(self):
+        return f"{self.event} on {self.date.strftime('%Y-%m-%d %H:%M:%S')}"
+
+
+    def timeline(cls , response):
+        return cls.objects.filter(response = response).order_by('date')
