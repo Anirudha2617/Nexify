@@ -80,6 +80,79 @@ def create_form(request):
     }
     return render(request, 'event/create_form.html', context)
 
+def edit_form(request, form_id):
+    form_instance = get_object_or_404(Form, id=form_id, created_by=request.user)
+    questions = Question.objects.filter(form=form_instance)
+
+    # Process existing choices for rendering
+    for question in questions:
+        question.parsed_choices = question.choices.split(',') if question.choices else []
+
+    choice_question_types = ['SC', 'MC', 'DD']  # Question types requiring choices
+
+    if request.method == 'POST':
+        # Initialize the form with POST data
+        form = FormCreateForm(request.POST, instance=form_instance, user=request.user)
+
+        if form.is_valid():
+            # Handle public status
+            if form.cleaned_data.get('public'):
+                form.instance.is_public = True
+
+            # Save the form
+            updated_form = form.save()
+
+            # Dynamically determine the number of questions
+            num_questions = len([key for key in request.POST if key.startswith("question_text_")])
+
+            # Loop through each question in the POST data
+            for i in range(num_questions):
+                question_text = request.POST.get(f'question_text_{i}')
+                question_type = request.POST.get(f'question_type_{i}')
+                question_id = request.POST.get(f'question_id_{i}')  # Check if updating an existing question
+
+                if question_text and question_type:
+                    if question_id:
+                        # Update existing question
+                        question = Question.objects.get(id=question_id, form=form_instance)
+                        question.text = question_text
+                        question.question_type = question_type
+                    else:
+                        # Create new question
+                        question = Question.objects.create(
+                            form=updated_form,
+                            text=question_text,
+                            question_type=question_type
+                        )
+
+                    # Handle choices for specific question types
+                    if question_type in choice_question_types:
+                        choices = request.POST.getlist(f'choice_{i}[]')  # Get list of choices
+                        question.choices = ','.join(choices)  # Store choices as a comma-separated string
+                    else:
+                        question.choices = ''  # Clear choices if not applicable
+
+                    question.save()  # Save the question
+
+            # Redirect based on the 'extrapage' POST data
+            return redirect('my_forms:view_form', form_id=updated_form.id)
+
+        # If form is invalid, fall through to rendering with errors
+    else:
+        # Initialize the form for GET requests
+        form = FormCreateForm(instance=form_instance, user=request.user)
+
+    # Context for rendering the template
+    context = {
+        'form': form,
+        'questions': questions,
+        'choice_question_types': choice_question_types,
+    }
+
+    return render(request, 'event/edit_form.html', context)
+
+
+
 def create_extradetails(request, form_id):
     #print("Entered my_forms:create_extradetails")
     if request.method == 'POST':
@@ -139,8 +212,92 @@ def create_extradetails(request, form_id):
     return render(request, 'event/create_extradetails.html', context)
     pass
 
+
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import ExtraDetails, ExtraQuestion
+from .forms import FormCreateExtraDetails
+
+def edit_extradetails(request, form_id):
+    # Retrieve the ExtraDetails object and related questions
+    extra_details = get_object_or_404(ExtraDetails, id=form_id)
+    questions = ExtraQuestion.objects.filter(form=extra_details)
+    choice_question_types = ['SC', 'MC', 'DD']  # Question types requiring choices
+
+
+    # Preprocess choices for rendering
+    for question in questions:
+        question.parsed_choices = question.choices.split(',') if question.choices else []
+
+    if request.method == 'POST':
+        # Handle form submission for ExtraDetails
+        form = FormCreateExtraDetails(request.POST, request.FILES, instance=extra_details, mainformid = extra_details.Model.id)
+
+        if form.is_valid():
+            # Save the updated extra details form
+            updated_form = form.save()
+
+            # Determine number of questions dynamically
+            num_questions = len([key for key in request.POST if key.startswith("question_text_")])
+
+            # Track questions for deletion
+            existing_question_ids = [int(q.id) for q in questions]
+            updated_question_ids = []
+
+            for i in range(num_questions):
+                question_text = request.POST.get(f'question_text_{i}')
+                question_type = request.POST.get(f'question_type_{i}')
+                question_id = request.POST.get(f'question_id_{i}')  # Hidden field to track existing questions
+
+                if question_text and question_type:
+                    if question_id:  # Update an existing question
+                        question = ExtraQuestion.objects.get(id=question_id, form=extra_details)
+                        updated_question_ids.append(int(question_id))
+                    else:  # Create a new question
+                        question = ExtraQuestion(form=extra_details)
+
+                    question.text = question_text
+                    question.question_type = question_type
+
+                    # Handle choices for applicable question types
+                    if question_type in ['MC', 'DD']:
+                        choices = request.POST.getlist(f'choice_{i}[]')  # Get list of choices
+                        question.choices = ','.join(choices)
+                    else:
+                        question.choices = ''  # Clear choices for non-choice questions
+
+                    question.save()
+
+            # Delete any questions not included in the updated form
+            for question_id in existing_question_ids:
+                if question_id not in updated_question_ids:
+                    ExtraQuestion.objects.get(id=question_id).delete()
+
+            # Redirect to detail page or reload
+            return redirect('my_forms:view_form', form_id=updated_form.Model.id)
+    else:
+        # Prepopulate the form for GET requests
+        form = FormCreateExtraDetails(instance=extra_details, mainformid = extra_details.Model.id)
+
+    # Render the template
+    context = {
+        'form': form,
+        'questions': questions,
+        'choice_question_types': choice_question_types,
+    }
+    return render(request, 'event/edit_extradetails.html', context)
+
+
+def delete_extradetails_form(request, form_id):
+    try:
+        form = ExtraDetails.objects.get(id=form_id)
+        if request.method == 'POST':
+            form.delete()
+            previous_url = request.META.get('HTTP_REFERER', '/')
+            return redirect(previous_url) # Redirect to the form list after deletion
+    except ExtraDetails.DoesNotExist:
+        raise Http404("Form not found")
+
 def fill_form(request, form_id):
-        #print("Form object created.")
     form = get_object_or_404(Form, id=form_id)
     questions = form.questions.all()
     extradetails = form.extradetails.all()
@@ -179,7 +336,7 @@ def fill_form(request, form_id):
         else:
             print("goto fill participants details")
             print("Response_id = " , response.id)
-            # return redirect( 'my_forms:registration_details', response_id=response.id)
+            return redirect( 'my_forms:view_form', response_id=response.id)
             return HttpResponse(f"Succesfully submitted this response {response.id}")
     else:
         print("form went to render")
@@ -275,37 +432,37 @@ def view_form(request, form_id):
     else:
         return HttpResponseForbidden("You are not authorized to view this response.")
 
-# def view_response(request, response_id):
-#     response = get_object_or_404(Response, id=response_id)
-#     related_objects = response.registration_details.all()
-#     if related_objects :
-#         for detail in related_objects:
-#             registration = detail
-#     else:
-#         registration = None
-#     try:
-#         is_invited = (request.user in registration.accepted_users.all())
+def view_response(request, response_id):
+    response = get_object_or_404(Response, id=response_id)
+    related_objects = response.registration_details.all()
+    if related_objects :
+        for detail in related_objects:
+            registration = detail
+    else:
+        registration = None
+    try:
+        is_invited = (request.user in registration.accepted_users.all())
 
-#     except:
-#         is_invited = False
+    except:
+        is_invited = False
 
-#     if (response.submitted_by == request.user) or (is_invited):
-#         if (response.submitted_by != request.user) :
-#             registration = None
+    if (response.submitted_by == request.user) or (is_invited):
+        if (response.submitted_by != request.user) :
+            registration = None
         
         
-#         form = get_object_or_404(Form, id=response.form.id)
-#         all_extraresponses = response.extra_responses.all()
-#         context = {
-#             'form': form,
-#             'main_response': response,
-#             'all_extraresponses': all_extraresponses,
-#             'response_id': response_id,
-#             'registration' :registration,
-#         }
-#         return render(request ,  'event/view_response.html' , context)
-#     else:
-#         return HttpResponseForbidden("You are not authorized to view this response.")
+        form = get_object_or_404(Form, id=response.form.id)
+        all_extraresponses = response.extra_responses.all()
+        context = {
+            'form': form,
+            'main_response': response,
+            'all_extraresponses': all_extraresponses,
+            'response_id': response_id,
+            'registration' :registration,
+        }
+        return render(request ,  'event/view_response.html' , context)
+    else:
+        return HttpResponseForbidden("You are not authorized to view this response.")
 
 def form_registration_details(request ,form_id):
 
@@ -435,44 +592,44 @@ def edit_form_registrationdetails(request ,form_id):
     return render(request, 'event/create_registration.html', {'registration_form': form, 'all_clubs_members': None})
 
 
-# def add_questions(request, form_id):
-#     form = get_object_or_404(Form, id=form_id)
+def add_questions(request, form_id):
+    form = get_object_or_404(Form, id=form_id)
 
-#     if request.method == 'POST':        
-#         # Determine the number of questions dynamically based on the question_text keys in the POST data
-#         num_questions = len([key for key in request.POST if key.startswith("question_text_")])
+    if request.method == 'POST':        
+        # Determine the number of questions dynamically based on the question_text keys in the POST data
+        num_questions = len([key for key in request.POST if key.startswith("question_text_")])
         
-#         # Loop through each question
-#         for i in range(num_questions):
-#             question_text = request.POST.get(f'question_text_{i}')
-#             question_type = request.POST.get(f'question_type_{i}')
+        # Loop through each question
+        for i in range(num_questions):
+            question_text = request.POST.get(f'question_text_{i}')
+            question_type = request.POST.get(f'question_type_{i}')
             
-#             if question_text and question_type:
-#                 # Create the question instance
-#                 question = Question.objects.create(
-#                     form=form,
-#                     text=question_text,
-#                     question_type=question_type
-#                 )
+            if question_text and question_type:
+                # Create the question instance
+                question = Question.objects.create(
+                    form=form,
+                    text=question_text,
+                    question_type=question_type
+                )
 
-#                 # If the question type is Multiple Choice or Dropdown, handle the choices
-#                 if question_type in ['MC', 'DD']:
-#                     # Retrieve and process choices
-#                     choices = request.POST.getlist(f'choice_{i}[]')  # Get list of choices
-#                     question.choices = ','.join(choices)  # Store as a comma-separated string
-#                     question.save()  # Save the updated question with choices
+                # If the question type is Multiple Choice or Dropdown, handle the choices
+                if question_type in ['MC', 'DD']:
+                    # Retrieve and process choices
+                    choices = request.POST.getlist(f'choice_{i}[]')  # Get list of choices
+                    question.choices = ','.join(choices)  # Store as a comma-separated string
+                    question.save()  # Save the updated question with choices
 
 
-#         # After saving all questions, redirect to the form detail page
-#         return redirect('my_forms:fill_form', form_id=form.id)
+        # After saving all questions, redirect to the form detail page
+        return redirect('my_forms:fill_form', form_id=form.id)
 
-#     return render(request, 'apps/event/add_questionss.html', {'form': form})
+    return render(request, 'apps/event/add_questionss.html', {'form': form})
 
-# # Other views...
-# def view_all_questions(request, form_id):
-#     form = get_object_or_404(Form, id=form_id)
-#     questions = form.questions.all()  # Get all the questions related to the form
-#     return render(request, 'event/view_all_questions.html', {'form': form, 'questions': questions})
+# Other views...
+def view_all_questions(request, form_id):
+    form = get_object_or_404(Form, id=form_id)
+    questions = form.questions.all()  # Get all the questions related to the form
+    return render(request, 'event/view_all_questions.html', {'form': form, 'questions': questions})
 
 def form_responses(request, form_id):
     """View to list all submissions of a specific form."""
@@ -489,22 +646,22 @@ def delete_form(request, form_id):
     except Form.DoesNotExist:
         raise Http404("Form not found")
 
-# ###To be done tomorrow
-# def register(request ,response_id):
-#     member_in_club = []
-#     user_in_clubs=ClubMember.objects.filter(user=request.user)
-#     print(user_in_clubs)
-#     for club in user_in_clubs:
-#         club_detail = ClubDetails.objects.filter(club_pk=club.club.club_pk, branch_pk=club.club.branch_pk).first()
-#         member_in_club.append({
-#             'member': club,
-#             'club_detail': club_detail
-#             })
-#     club = member_in_club[0]['club_detail']
-#     all_members = ClubMember.objects.filter( club = club )
+###To be done tomorrow
+def register(request ,response_id):
+    member_in_club = []
+    user_in_clubs=ClubMember.objects.filter(user=request.user)
+    print(user_in_clubs)
+    for club in user_in_clubs:
+        club_detail = ClubDetails.objects.filter(club_pk=club.club.club_pk, branch_pk=club.club.branch_pk).first()
+        member_in_club.append({
+            'member': club,
+            'club_detail': club_detail
+            })
+    club = member_in_club[0]['club_detail']
+    all_members = ClubMember.objects.filter( club = club )
 
-#     print(all_members)
-#     return HttpResponse("registration done here")
+    print(all_members)
+    return HttpResponse("registration done here")
 
 
 def update_notification(request):

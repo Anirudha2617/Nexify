@@ -27,6 +27,7 @@ class FormCreateForm(forms.ModelForm):
             print("User updated successfully:", user)
         else:
             print("User not provided")
+            
 
 class FormCreateExtraDetails(forms.ModelForm):
     Model = forms.ModelChoiceField(

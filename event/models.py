@@ -233,6 +233,7 @@ class Notification(models.Model):
         if self.user not in self.event.rejected_users:
             self.event.rejected_users.add(self.user)
         print("Action rejected!")
+
 class Category(models.Model):
     name = models.CharField(max_length=50)
 
@@ -259,6 +260,6 @@ class Timeline(models.Model):
     def __str__(self):
         return f"{self.event} on {self.date.strftime('%Y-%m-%d %H:%M:%S')}"
 
-
+    @classmethod
     def timeline(cls , response):
         return cls.objects.filter(response = response).order_by('date')

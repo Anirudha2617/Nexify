@@ -305,7 +305,7 @@
             <ul class="form-list">
                 {% for form in invited_forms_responses %}
                     <li class="form-card">
-                        {% if form.image %}
+                        {% if form.form.image %}
                             <img src="{{ form.form.image.url }}" alt="{{ form.form.title }} image" class="form-image">
                         {% else %}
                             <img src="https://via.placeholder.com/50" alt="Default image" class="form-image">

@@ -24,7 +24,7 @@
                     <a href="{% url 'event:view_all_questions' form.id %}">View All Questions</a> 
                     
                     <!-- Delete Form Button -->
-                    <form action="{% url 'event:delete_form' form.id %}" method="post" style="display:inline;">
+                    <form action="{% url 'my_forms:delete_form' form.id %}" method="post" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" onclick="return confirm('Are you sure you want to delete this form?');" style="color: red;">Delete Form</button>
                     </form>

@@ -8,6 +8,96 @@
 {% endblock head_title %}
 {% block stylesheet %}
 
+<style>
+    body {
+        background-color: #0c1117;
+        color: rgb(213, 211, 211);
+        font-family: 'Arial', sans-serif;
+        margin: 20px;
+        padding: 0;
+        line-height: 1.6;
+    }
+
+    h1 {
+        text-align: center;
+        color: white;
+    }
+
+    p {
+        text-align: center;
+        color: rgb(213, 211, 211);
+        font-size: 1.1em;
+    }
+
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+
+
+
+    img {
+        max-width: 200px;
+        height: auto;
+        margin-top: 10px;
+    }
+
+    a {
+        text-decoration: none;
+        color: #299afd;
+        font-weight: bold;
+        margin-right: 10px;
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    a:hover {
+        text-decoration: underline;
+        color: #a19f9f;
+    }
+
+    button {
+        background-color: transparent;
+        border: none;
+        color: red;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+
+    button:hover {
+        color: darkred;
+    }
+
+    a[href*="create_form"] {
+        display: block;
+        text-align: center;
+        background-color: #1abc9c;
+        color: #fff;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+        font-weight: bold;
+    }
+
+    a[href*="create_form"]:hover {
+        background-color: #16a085;
+    }
+
+    .questions-list {
+        background-color: #1b1f26;
+        border: 1px solid #a19f9f;
+        border-radius: 5px;
+        margin: 10px 0;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgb(213, 211, 211);
+    }
+</style>
 {% endblock stylesheet %}
 {% block pages %}
 
@@ -15,34 +105,61 @@
     <div class="row" style="padding: 1rem;padding-top: 0;">
         <div class="container-fluid">
             <div class="row">
-                <div class="col-md-6" style="display: flex;align-items: center;justify-content: center;">
-                    <img src="../../static/assets/img/landing/Forms-bro.svg" alt="" style="width: 400px;">
-                </div>
                 <div class="col-md-6">
-                    <h1>Create a New Form</h1>
+                    <h1>Edit Form Details</h1>
                     <form method="post" enctype="multipart/form-data" style="width: 100%;">
                         {% csrf_token %}
                         {{ form.as_p }}
                         <input type="hidden" id="extrapage" name="extrapage" value="false">
+                        
                         <div class="container">
-                            <div class="row mb-3" style="padding: 1rem; padding-top: 0;">
-                                <h4 style="color: white;" class="mb-3">Add Multiple Questions to this page: </h4>
-                                        
-                                    <div id="question-containers" class="row"></div> <!-- Container for all dynamic questions -->
-                    
-                                    <div class="col-md-12">
-                                        <button type="button" class="btn btn-primary" onclick="addQuestion()">Add Question</button>
+                            <h4>Edit Questions:</h4>
+                            <div id="question-containers" class="row">
+                                {% for question in questions %}
+                                <div class="question-container col-md-6 mb-4">
+                                    <div class="card p-3">
+                                        <input type="hidden" name="question_id_{{ forloop.counter0 }}" value="{{ question.id }}">
+
+                                        <div class="input-group mb-3">
+                                            <label for="question_text_{{ forloop.counter0 }}" class="form-label">Question Text:</label>
+                                            <input type="text" id="question_text_{{ forloop.counter0 }}" name="question_text_{{ forloop.counter0 }}" class="form-control" value="{{ question.text }}" required>
+                                        </div>
+
+                                        <div class="input-group mb-3">
+                                            <label for="question_type_{{ forloop.counter0 }}" class="form-label">Question Type:</label>
+                                            <select id="question_type_{{ forloop.counter0 }}" name="question_type_{{ forloop.counter0 }}" class="form-select" onchange="updateQuestionType({{ forloop.counter0 }})" required>
+                                                <option value="TEXT" {% if question.question_type == "TEXT" %}selected{% endif %}>Text</option>
+                                                <option value="MC" {% if question.question_type == "MC" %}selected{% endif %}>Multiple Choice</option>
+                                                <option value="DD" {% if question.question_type == "DD" %}selected{% endif %}>Dropdown</option>
+                                                <option value="SA" {% if question.question_type == "SA" %}selected{% endif %}>Short Answer</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Multiple Choice or Dropdown Options -->
+                                        <div id="choices-container-{{ forloop.counter0 }}" class="input-group mb-3" style="{% if question.question_type not in choice_question_types %}display: none;{% endif %}">
+                                            <label class="form-label">Choices:</label>
+                                            {% for choice in question.parsed_choices %}
+                                            <input type="text" class="form-control mb-2" name="choice_{{ forloop.counter0 }}[]" value="{{ choice }}" placeholder="Option"/>
+                                            {% endfor %}
+                                            <button type="button" class="btn btn-secondary" onclick="addChoiceField({{ forloop.counter0 }})">Add another option</button>
+                                        </div>
+
+                                        <button type="button" class="btn btn-danger mt-2" onclick="removeQuestion(this)">Remove Question</button>
                                     </div>
+                                </div>
+                                {% endfor %}
                             </div>
+
+                            <button type="button" class="btn btn-primary" onclick="addQuestion()">Add Question</button>
                         </div>
-                        {% comment %} <button type="submit" class="btn btn-success" onclick = "setExtraPage(true)" >Save and add another page</button> {% endcomment %}
-                        <button type="submit" class="btn btn-success" onclick = "setExtraPage(false)" >Create Form</button>
+
+                        {% comment %} <button type="submit" class="btn btn-success" onclick="setExtraPage(true)">Save and add another page</button> {% endcomment %}
+                        <button type="submit" class="btn btn-success" onclick="setExtraPage(false)">Save Changes</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-
 </section>
 
 <script>
@@ -139,9 +256,7 @@
     window.onload = function() {
         addQuestion(); // Automatically add the first question
     }
+
 </script>
 
-
 {% endblock pages %}
-
-

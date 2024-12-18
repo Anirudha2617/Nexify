@@ -11,42 +11,54 @@
 {% endblock stylesheet %}
 {% block pages %}
 
-<section class="section_profile">
-    <div class="row" style="padding: 1rem;padding-top: 0;">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-6" style="display: flex;align-items: center;justify-content: center;">
-                    <img src="../../static/assets/img/landing/Forms-bro.svg" alt="" style="width: 400px;">
-                </div>
-                <div class="col-md-6">
-                    <h1>Create a New Form</h1>
-                    <form method="post" enctype="multipart/form-data" style="width: 100%;">
-                        {% csrf_token %}
-                        {{ form.as_p }}
-                        <input type="hidden" id="extrapage" name="extrapage" value="false">
-                        <div class="container">
-                            <div class="row mb-3" style="padding: 1rem; padding-top: 0;">
-                                <h4 style="color: white;" class="mb-3">Add Multiple Questions to this page: </h4>
-                                        
-                                    <div id="question-containers" class="row"></div> <!-- Container for all dynamic questions -->
-                    
-                                    <div class="col-md-12">
-                                        <button type="button" class="btn btn-primary" onclick="addQuestion()">Add Question</button>
-                                    </div>
-                            </div>
-                        </div>
-                        {% comment %} <button type="submit" class="btn btn-success" onclick = "setExtraPage(true)" >Save and add another page</button> {% endcomment %}
-                        <button type="submit" class="btn btn-success" onclick = "setExtraPage(false)" >Create Form</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+<section class="section_edit_form">
+    <div class="container-fluid">
+        <h1>Edit Form</h1>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="hidden" id="existing_question_ids" name="existing_question_ids" value="{{ question_ids|join:',' }}">
 
+            <div id="question-containers" class="row">
+                {% for question in questions %}
+                <div class="question-container col-md-6 mb-4">
+                    <div class="card p-3">
+                        <input type="hidden" name="question_id_{{ forloop.counter0 }}" value="{{ question.id }}">
+                        <label for="question_text_{{ forloop.counter0 }}">Question Text:</label>
+                        <input type="text" id="question_text_{{ forloop.counter0 }}" name="question_text_{{ forloop.counter0 }}" class="form-control" value="{{ question.text }}" required>
+
+                        <label for="question_type_{{ forloop.counter0 }}">Question Type:</label>
+                        <select id="question_type_{{ forloop.counter0 }}" name="question_type_{{ forloop.counter0 }}" class="form-select" onchange="updateQuestionType({{ forloop.counter0 }})" required>
+                            <option value="TEXT" {% if question.question_type == 'TEXT' %}selected{% endif %}>Text</option>
+                            <option value="MC" {% if question.question_type == 'MC' %}selected{% endif %}>Multiple Choice</option>
+                            <option value="SA" {% if question.question_type == 'SA' %}selected{% endif %}>Short Answer</option>
+                            <option value="LA" {% if question.question_type == 'LA' %}selected{% endif %}>Long Answer</option>
+                            <option value="DD" {% if question.question_type == 'DD' %}selected{% endif %}>Dropdown</option>
+                            <option value="DT" {% if question.question_type == 'DT' %}selected{% endif %}>Date and Time</option>
+                            <option value="IMG" {% if question.question_type == 'IMG' %}selected{% endif %}>Image</option>
+                        </select>
+
+                        <div id="choices-container-{{ forloop.counter0 }}" class="input-group mb-3" style="{% if question.question_type not in choice_question_types %}display: none;{% endif %}">
+                            <label>Choices:</label>
+                            {% for choice in question.parsed_choices %}
+                                <input type="text" class="form-control" value="{{ choice }}" />
+                            {% endfor %}
+                        </div>
+                        
+
+                        <button type="button" class="btn btn-danger mt-2" onclick="removeQuestion(this)">Remove Question</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="addQuestion()">Add Question</button>
+            <button type="submit" class="btn btn-success">Save Changes</button>
+        </form>
+    </div>
 </section>
 
 <script>
-
     function setExtraPage(value) {
         document.getElementById('extrapage').value = value;
     }
@@ -141,7 +153,4 @@
     }
 </script>
 
-
 {% endblock pages %}
-
-
