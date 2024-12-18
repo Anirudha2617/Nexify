@@ -6,7 +6,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 Examples:
 Function views
     1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+    2. Add a URL to urlpatterns:  pat+h('', views.home, name='home')
 Class-based views
     1. Add an import:  from other_app.views import Home
     2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
@@ -27,6 +27,8 @@ urlpatterns = [
     path('home/',include('home.urls')),
     path('club/',include('club.urls')),
     path('event/',include('event.urls')),
+    # path('forms/',include('forms.urls')),
+    path('my_forms/',include('my_forms.urls')),
     path('tracking/',include('tracking.urls')),
     path('tenders/',include('tenders.urls')),
 ]

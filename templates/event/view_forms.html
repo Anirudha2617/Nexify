@@ -222,7 +222,7 @@
             <ul class="form-list">
                 {% for opportunity in opportunity_types %}
                     <li class="form-card">
-                            <form action="{% url 'event:response_form' %}" class="form-content" >
+                            <form action="{% url 'event:create_event' %}" class="form-content" >
                                 {% csrf_token %}
                                 <input type="hidden" name="event_no" value="{{ forloop.counter }}">
                                 <a href="#" onclick="this.closest('form').submit(); return false;" class="form-title" >{{ opportunity }}</a>
@@ -240,7 +240,7 @@
                 {% for response in hosted_events %}
                     <li class="form-card">                        
                         <div class="form-content">
-                            <a href="{% url 'event:response_detail' response_id=response.id %}" class="form-title">{{ response.opportunity_title|slice:":21"}}{% if response.opportunity_title|length > 21 %}...{% endif %}</a>
+                            <a href="{% url 'event:view_event' response_id=response.id %}" class="form-title">{{ response.opportunity_title|slice:":21"}}{% if response.opportunity_title|length > 21 %}...{% endif %}</a>
                             <p class="form-description">
                                 {{ response.about_opportunity|slice:":30" }}{% if response.about_opportunity|length > 30 %}...{% endif %}
                             </p>
@@ -255,12 +255,12 @@
         <section class="form-type-group {% if form_type == 'engaging' %}engaging-section{% else %}hiring-section{% endif %}">
             <h2 class="form-type-title">Invited Events</h2>
             <ul class="form-list">
-                {% for response in invited_events %}
+                {% for response in invited_events_responses %}
                     <li class="form-card">                        
                         <div class="form-content">
-                            <a href="{% url 'event:response_detail' response_id=response.id %}" class="form-title">{{ response.opportunity_title|slice:":21"}}{% if response.opportunity_title|length > 21 %}...{% endif %}</a>
+                            <a href="{% url 'event:view_event' response_id=response.event.id %}" class="form-title"> {{ response.event.opportunity_title|slice:":21"}}{% if response.event.opportunity_title|length > 21 %}...{% endif %}</a>
                             <p class="form-description">
-                                {{ response.about_opportunity|slice:":30" }}{% if response.about_opportunity|length > 30 %}...{% endif %}
+                                {{ response.event.about_opportunity|slice:":30" }}{% if response.event.about_opportunity|length > 30 %}...{% endif %}
                             </p>
                         </div>
                     </li>
@@ -272,11 +272,11 @@
 
         <section class="form-type-group {% if form_type == 'engaging' %}engaging-section{% else %}hiring-section{% endif %}">
             <h2 class="form-type-title">Created Forms</h2>
-            <a href={% url 'event:create_form' %} class="form-title" >Create Forms</a>
+            <a href="{% url 'my_forms:create_form' %}" class="form-title" >Create Forms</a>
             <ul class="form-list">
                 <li class="form-card">
                     <div class="form-content">
-                        <a href={% url 'event:create_form' %} class="form-title" >Create Forms</a>
+                        <a href="{% url 'my_forms:create_form' %}" class="form-title">Create Forms</a>
                     </div>
                 </li>
                 {% for form in crated_forms %}
@@ -288,7 +288,7 @@
                         {% endif %}
                         
                         <div class="form-content">
-                            <a href="{% url 'event:view_form' form.id %}" class="form-title">{{ form.title|slice:":21"}}{% if form.title|length > 21 %}...{% endif %}</a>
+                            <a href="{% url 'my_forms:view_form' form.id %}" class="form-title">{{ form.title|slice:":21"}}{% if form.title|length > 21 %}...{% endif %}</a>
                             <p class="form-description">
                                 {{ form.description|slice:":30" }}{% if form.description|length > 30 %}...{% endif %}
                             </p>
@@ -303,18 +303,18 @@
         <section class="form-type-group {% if form_type == 'engaging' %}engaging-section{% else %}hiring-section{% endif %}">
             <h2 class="form-type-title">Invited Forms</h2>
             <ul class="form-list">
-                {% for form in invited_forms %}
+                {% for form in invited_forms_responses %}
                     <li class="form-card">
                         {% if form.image %}
-                            <img src="{{ form.image.url }}" alt="{{ form.title }} image" class="form-image">
+                            <img src="{{ form.form.image.url }}" alt="{{ form.form.title }} image" class="form-image">
                         {% else %}
                             <img src="https://via.placeholder.com/50" alt="Default image" class="form-image">
                         {% endif %}
                         
                         <div class="form-content">
-                            <a href="{% url 'event:fill_form' form.id %}" class="form-title">{{ form.title|slice:":21"}}{% if form.title|length > 21 %}...{% endif %}</a>
+                            <a href="{% url 'my_forms:fill_form' form.form.id %}" class="form-title">{{ form.form.title|slice:":21"}}{% if form.form.title|length > 21 %}...{% endif %}</a>
                             <p class="form-description">
-                                {{ form.description|slice:":30" }}{% if form.description|length > 30 %}...{% endif %}
+                                {{ form.form.description|slice:":30" }}{% if form.form.description|length > 30 %}...{% endif %}
                             </p>
                         </div>
                     </li>
@@ -324,7 +324,6 @@
             </ul>
         </section>
 
-
         <div id="notificationPanel" class="notification-panel">
             <div class="notification-header">
                 <h3>Notifications</h3>
@@ -333,13 +332,27 @@
             <div class="notification-body">
 
                 <section class="container mt-4 {% if form_type == 'engaging' %}engaging-section{% else %}hiring-section{% endif %}">
-                    {% for notification in all_notifications %}
+                    {% for notification in event_notifications %}
                         <div class="notification-card" id="card-{{ notification.id }}">
                             <h5>{{ notification.title }}</h5>
                             <p>{{ notification.message }}</p>
                             <div class="button-container" id="button-{{ notification.id }}">
-                                <button type="button" class="btn btn-success" onclick="handleAction('{{ notification.id }}', 'accept')">Accept</button>
-                                <button type="button" class="btn btn-danger" onclick="handleAction('{{ notification.id }}', 'reject')">Reject</button>
+                                <button type="button" class="btn btn-success" onclick="EventnotificationAction('{{ notification.id }}', 'accept')">Accept</button>
+                                <button type="button" class="btn btn-danger" onclick="EventnotificationAction('{{ notification.id }}', 'reject')">Reject</button>
+                            </div>
+                            <!-- Hidden input field to store the state -->
+                            <input type="hidden" name="card-{{ notification.id }}" id="state-{{ notification.id }}" value="">
+                        </div>
+                        {% empty %}
+                            <li>No unread notifications available</li>
+                    {% endfor %}
+                    {% for notification in form_notifications %}
+                        <div class="notification-card" id="card-{{ notification.id }}">
+                            <h5>{{ notification.title }}</h5>
+                            <p>{{ notification.message }}</p>
+                            <div class="button-container" id="button-{{ notification.id }}">
+                                <button type="button" class="btn btn-success" onclick="FormNotificationAction('{{ notification.id }}', 'accept')">Accept</button>
+                                <button type="button" class="btn btn-danger" onclick="FormNotificationAction('{{ notification.id }}', 'reject')">Reject</button>
                             </div>
                             <!-- Hidden input field to store the state -->
                             <input type="hidden" name="card-{{ notification.id }}" id="state-{{ notification.id }}" value="">
@@ -352,11 +365,13 @@
         </div>
 
         <section>
-            <a href={% url 'event:create_form' %} >Create Forms</a>
+            <a  >Create Forms</a>
         </section>
     </section>
+
+
 <script>
-    function handleAction(notificationId, action) {
+    function EventnotificationAction(notificationId, action) {
         const card = document.getElementById(`card-${notificationId}`);
         const buttons = document.querySelectorAll(`#button-${notificationId} button`);
         const stateInput = document.getElementById(`state-${notificationId}`);
@@ -395,7 +410,51 @@
                 buttons.forEach(button => button.disabled = false); // Re-enable buttons on error
                 alert('There was an issue updating the notification. Please try again.');
             });
-            
+    }
+    
+</script>
+
+
+<script>
+    function FormNotificationAction(notificationId, action) {
+        const card = document.getElementById(`card-${notificationId}`);
+        const buttons = document.querySelectorAll(`#button-${notificationId} button`);
+        const stateInput = document.getElementById(`state-${notificationId}`);
+        
+        // Disable buttons after an action
+        buttons.forEach(button => button.disabled = true);
+        const url = "{% url 'my_forms:update_notification' %}?notificationId=" + encodeURIComponent(notificationId) + "&action=" + encodeURIComponent(action)
+    
+        // Send a request to the backend
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update the hidden input
+                    stateInput.value = action;
+    
+                    // Optional: Add visual feedback
+                    if (action === 'accept') {
+                        card.classList.add('border-success');
+                        card.classList.remove('border-danger');
+                    } else if (action === 'reject') {
+                        card.classList.add('border-danger');
+                        card.classList.remove('border-success');
+                    }
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating notification:', error);
+                buttons.forEach(button => button.disabled = false); // Re-enable buttons on error
+                alert('There was an issue updating the notification. Please try again.');
+            });
     }
     
 </script>

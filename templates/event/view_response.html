@@ -100,7 +100,7 @@
 
 
     
-        <a href="{% url 'event:view_forms' %}">View Form</a>
+        <a href="{% url 'event:main_view' %}">View Form</a>
         <a href="{% url 'event:register' response_id %}">Register</a>
         {% if registration %}
             <a href="{% url 'event:edit_register' registration.id %}">Edit Registration</a>

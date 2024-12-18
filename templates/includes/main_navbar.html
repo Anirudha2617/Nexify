@@ -12,7 +12,7 @@
         <a href="{% url 'tracking:tracking' %}" class="navbar__link"><i data-feather="monitor"></i><span>Tracking</span></a>        
       </li>
       <li class="navbar__item {% if '/event/' in request.path %} navbar__item__new__background {% endif %}">
-        <a href="{% url 'event:view_forms' %}" class="navbar__link"><i data-feather="folder"></i><span>Events</span></a>        
+        <a href="{% url 'event:main_view' %}" class="navbar__link"><i data-feather="folder"></i><span>Events</span></a>        
       </li>
       <li class="navbar__item">
         <a href="{% url 'tender:tender_list' %}" class="navbar__link"><i data-feather="archive"></i><span>Resources</span></a>        

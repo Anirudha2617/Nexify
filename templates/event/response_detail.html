@@ -254,6 +254,10 @@
         {% if response.created_by == user %}
         <a href="{% url 'event:edit_register' registration.id %}">Edit Registration</a>
         {% endif %}
+    {% else %}
+        {% if response.created_by == user %}
+        <a href="{% url 'event:event_registration_details' response_id %}">Create Registration</a>
+        {% endif %}
         
     {% endif %}
 

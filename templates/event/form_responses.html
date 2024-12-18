@@ -56,7 +56,7 @@
                 <h2>Submission {{ forloop.counter }}</h2>
                 <p>Submitted on: {{ response.created_at }}</p>
                 
-                <p>Submitted by: {{ response.created_by }}</p>
+                <p>Submitted by: {{ response.submitted_by }}</p>
                 <ul>
                     {% for answer in response.answers.all %}
                         <li>
@@ -98,7 +98,7 @@
             <p>No submissions have been made for this form yet.</p>
         {% endif %}
     
-        <a href="{% url 'event:view_forms' %}">View Form</a>
+        <a href="{% url 'event:main_view' %}">View Form</a>
     </div>
 </section>
 
