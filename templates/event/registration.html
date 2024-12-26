@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invite Members UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Background */
+        body {
+            background-color: #0e1d32;
+            background-image: url('https://www.toptal.com/designers/subtlepatterns/uploads/cubes.png');
+            background-size: cover;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Card Styling */
+        .card {
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            background-color: rgba(19, 25, 32, 0.85);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.125);
+            padding: 20px;
+            width: 400px;
+            color: #fff;
+        }
+
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .list-group-item {
+            background-color: transparent;
+            border: none;
+            padding: 10px 0;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background-color: #4caf50;
+        }
+
+        .status-busy {
+            background-color: #ff9800;
+        }
+
+        .status-offline {
+            background-color: #f44336;
+        }
+
+        .btn-invite {
+            background-color: #007bff;
+            color: #fff;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        .btn-invite:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <form method = "POST" >
+        {% csrf_token %}
+        {{form.as_p}}
+        <button type="submit">Submit</button>
+    </form>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <span>Team Members</span>
+            <a href="#" class="text-primary">See all</a>
+        </div>
+        <ul class="list-group">
+            <!-- Member 1 -->
+            <li class="list-group-item d-flex align-items-center">
+                <img src="https://via.placeholder.com/50" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
+                <div>
+                    <h5 class="mb-0">Chris Wood</h5>
+                    <span><span class="status-dot status-online"></span>Online</span>
+                </div>
+                <button class="btn-invite ms-auto">Invite</button>
+            </li>
+            <!-- Member 2 -->
+            <li class="list-group-item d-flex align-items-center">
+                <img src="https://via.placeholder.com/50" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
+                <div>
+                    <h5 class="mb-0">Jose Leos</h5>
+                    <span><span class="status-dot status-busy"></span>Busy</span>
+                </div>
+                <button class="btn-invite ms-auto">Invite</button>
+            </li>
+            <!-- Member 3 -->
+            <li class="list-group-item d-flex align-items-center">
+                <img src="https://via.placeholder.com/50" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
+                <div>
+                    <h5 class="mb-0">Jeny Green</h5>
+                    <span><span class="status-dot status-offline"></span>Offline</span>
+                </div>
+                <button class="btn-invite ms-auto">Invite</button>
+            </li>
+            <!-- Member 4 -->
+            <li class="list-group-item d-flex align-items-center">
+                <img src="https://via.placeholder.com/50" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
+                <div>
+                    <h5 class="mb-0">Neil Sims</h5>
+                    <span><span class="status-dot status-online"></span>Online</span>
+                </div>
+                <button class="btn-invite ms-auto">Invite</button>
+            </li>
+        </ul>
+    </div>
+</body>
+</html>

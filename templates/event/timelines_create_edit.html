@@ -1,0 +1,80 @@
+{% extends "allauth/layouts/main_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load allauth account %}
+{% block head_title %}
+{% trans "Profile" %}
+{% endblock head_title %}
+{% block pages %}
+
+<H1> Create Timelines</H1>
+<ul>
+    <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div id="question-containers" class="row">
+        {% for timeline in timelines %}
+
+            <div class="Timelines_{{ forloop.counter0 }}" id ="Timelines_{{ forloop.counter0 }}" name = "Timelines_{{ forloop.counter0 }}" >
+                <input type="hidden" name="timeline_id{{ forloop.counter0 }}" value="{{ timeline.id }}">
+                <input type="hidden" name="is_deleted{{ forloop.counter0 }}" value="0">
+                <label for="date_{{ forloop.counter0 }}">Date</label>
+                <input type="datetime-local" id="date_{{ forloop.counter0 }}" name="date_{{ forloop.counter0 }}" value="{{ timeline.date|date:'Y-m-d\\TH:i' }}" required >
+                
+                <label for="event_{{ forloop.counter0 }}">Event</label>
+                <input type="text" id="event_{{ forloop.counter0 }}" name="event_{{ forloop.counter0 }}" required value="{{ timeline.event }}">
+
+                <button type="button" class="delete-button" onclick="removeQuestion(this , {{ forloop.counter0 }} , {{ timeline.id }} )">Delete</button>
+            </div>
+
+        {% endfor %}
+    </div>
+    <button type="button" class="btn btn-primary" onclick="addQuestion()">Add Question</button>
+    <button type="submit" class="btn btn-success">Save Changes</button>
+    </form>
+</ul>
+
+
+<script>
+
+    function addQuestion() {
+        const questionContainer = document.getElementById('question-containers');
+        const index = questionContainer.children.length;
+
+        const newQuestion = document.createElement('div');
+        newQuestion.classList.add('question-container', 'col-md-6', 'mb-4');
+
+        newQuestion.innerHTML = `
+            <div class="Timelines_${index}" id ="Timelines_${index}" name = "Timelines_${index}" >
+                <input type="hidden" name="is_deleted${index}" value="0">
+                <label for="date_${index}">Date</label>
+                <input type="datetime-local" id="date_${index}" name="date_${index}" " required >
+                
+                <label for="event_${index}">Event</label>
+                <input type="text" id="event_${index}" name="event_${index}" required >
+
+                <button type="button" class="delete-button" onclick="removeQuestion( this , ${index} )">Delete</button>
+            </div>
+        `;
+        questionContainer.appendChild(newQuestion);
+    }
+
+    function removeQuestion(button, counter, timeline_id = null) {
+        const questionContainer = button.closest('.Timelines_' + counter);
+
+        questionContainer.remove();
+    
+        if (timeline_id !== null) {
+            const url = `/event/timelines/${timeline_id}/delete/`;
+            fetch(url, { method: 'GET' })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Failed to delete timeline from the server.');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    }
+</script>
+
+{% endblock pages %}

@@ -31,7 +31,7 @@ class EventCreateForm(forms.ModelForm):
         self.fields['visibility'].choices = Event.VISIBILITY_CHOICES
         self.fields['mode_of_event'].choices = Event.MODE_CHOICES
 
-        # Categories field as CheckboxSelectMultiple
+        # Categories field as CheckboxSelectMultiple 
         self.fields['categories'].widget = forms.CheckboxSelectMultiple()
 
         # Use CKEditor for the about_opportunity field
@@ -107,28 +107,29 @@ class RegistrationDetailsForm(forms.ModelForm):
 
         return cleaned_data
 
-# class NotificationForm(forms.ModelForm):
-#     class Meta:
-#         model = Notification
-#         fields = ['title','message', 'status']
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-
-#     def clean(self):
-#         cleaned_data = super().clean()
-#         return cleaned_data
 
 
-# # function toggleInvitedUsersField() {
-# #     if (visibilityField.value === "Public") {
-# #         invitedUsersFieldWrapper.addClass('hidden');
-# #         invitedUsersField.val(null).trigger('change'); // Clear selection
-# #     } else {
-# #         invitedUsersFieldWrapper.removeClass('hidden');
-# #     }
-# # }
-# # // Initial state
-# # toggleInvitedUsersField();
-# # // Update on change
-# # visibilityField.addEventListener("change", toggleInvitedUsersField);
+
+
+# forms.py
+from django.forms import modelformset_factory
+from .models import Timeline
+
+class TimelineForm(forms.ModelForm):
+    class Meta:
+        model = Timeline
+        fields = ['date', 'event']
+        widgets = {
+            'date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        }
+
+# Formset for multiple timelines
+TimelineFormSet = modelformset_factory(
+    Timeline,
+    form=TimelineForm,
+    extra=3,  # Number of empty forms to display
+    can_delete=True  # Allow deletion of existing timelines
+)
+
+
+

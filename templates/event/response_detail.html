@@ -163,6 +163,42 @@
             max-height: 120px;
         }
     }
+    /* Styling for User Lists */
+    .questions-list {
+        background-color: #2a2a2a;
+        color: #e0e0e0;
+        padding: 10px 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        list-style-type: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .questions-list:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.5);
+        background-color: #3a3a3a;
+    }
+    
+
+    
+    .no-info {
+        color: #757575;
+        font-style: italic;
+    }
+    
+    @media (max-width: 768px) {
+        .questions-list {
+            font-size: 0.9rem;
+            padding: 8px 12px;
+        }
+    
+        p {
+            font-size: 1rem;
+        }
+    }
+    
     
 </style>
 {% endblock stylesheet %}
@@ -244,12 +280,44 @@
     </div>
     
     
-    {% for invited_users in registration.invited_users.all %}
-        <li>
-            {{invited_users}}
-        </li>
-    {% endfor %}
+    <p>Invited Users</p>
+        {% for invited_users in registration.invited_users.all %}
+            <li class = "questions-list" >
+                {{invited_users}}
+            </li>
+        {% endfor %}
+    <p>Accepted Users</p>
+        {% for accepted_users in registration.accepted_users.all %}
+            <li class = "questions-list" >
+                {{accepted_users}}
+                {% for teams in accepted_users.accepted_teams.all %}
+                    {% if teams.event == response %}
+                        {{teams.team_name}}
+                    {% endif %}
+                {% endfor %}
+            </li>
+        {% endfor %}
+    <p>Rejected Users</p>
+        {% for rejected_users in registration.rejected_users.all %}
+            <li class = "questions-list" >
+                {{rejected_users}}
+            </li>
+        {% endfor %}
+    <p>Registred Teams</p>
+        {% for team in registration.event.teams.all %}
+            <li class = "questions-list" >
+                <a href="{% url 'event:edit_register' team.id %}" class="form-title"> {{ team.team_name|slice:":21"}}{% if team.team_name|length > 21 %}...{% endif %}</a>
+                <a href="{% url 'teams:delete_team' team.id %}" class="delete-link" onclick="return confirm('Are you sure you want to delete this team?');">
+                    Delete
+                </a>
+            </li>
+        {% endfor %}
+
+        
     <a href="{% url 'event:register' response_id %}">Register</a>
+    <a href="{% url 'event:timeline' response_id %}">Edit Timeline</a>
+    <a href="{% url 'event:timeline_list' response_id=response_id %}">View Timeline</a>
+
     {% if registration %}
         {% if response.created_by == user %}
         <a href="{% url 'event:edit_register' registration.id %}">Edit Registration</a>

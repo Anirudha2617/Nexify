@@ -324,6 +324,42 @@
             </ul>
         </section>
 
+        <section class="form-type-group {% if form_type == 'engaging' %}engaging-section{% else %}hiring-section{% endif %}">
+            <h2 class="form-type-title">Created Teams</h2>
+            <ul class="form-list">
+                {% for team in created_teams %}
+                    <li class="form-card">                        
+                        <div class="form-content">
+                            <a href="{% url 'event:edit_register' team.id %}" class="form-title"> {{ team.team_name|slice:":21"}}{% if team.team_name|length > 21 %}...{% endif %}</a>
+                            <p class="form-description">
+                                {{ team.event.opportunity_title|slice:":30" }}{% if team.event.opportunity_title|length > 30 %}...{% endif %}
+                            </p>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li>No forms available for this type</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="form-type-group {% if form_type == 'engaging' %}engaging-section{% else %}hiring-section{% endif %}">
+            <h2 class="form-type-title">Invited Teams</h2>
+            <ul class="form-list">
+                {% for team in accepted_teams %}
+                    <li class="form-card">                        
+                        <div class="form-content">
+                            <a href="{% url 'event:edit_register' team.id %}" class="form-title"> {{ team.team_name|slice:":21"}}{% if team.team_name|length > 21 %}...{% endif %}</a>
+                            <p class="form-description">
+                                {{ team.event.opportunity_title|slice:":30" }}{% if team.event.opportunity_title|length > 30 %}...{% endif %}
+                            </p>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li>No forms available for this type</li>
+                {% endfor %}
+            </ul>
+        </section>
+
         <div id="notificationPanel" class="notification-panel">
             <div class="notification-header">
                 <h3>Notifications</h3>
@@ -360,6 +396,21 @@
                         {% empty %}
                             <li>No unread notifications available</li>
                     {% endfor %}
+
+                    {% for notification in team_notifications %}
+                        <div class="notification-card" id="card-{{ notification.id }}">
+                            <h5>{{ notification.title }}</h5>
+                            <p>{{ notification.message }}</p>
+                            <div class="button-container" id="button-{{ notification.id }}">
+                                <button type="button" class="btn btn-success" onclick="TeamNotificationAction('{{ notification.id }}', 'accept')">Accept</button>
+                                <button type="button" class="btn btn-danger" onclick="TeamNotificationAction('{{ notification.id }}', 'reject')">Reject</button>
+                            </div>
+                            <!-- Hidden input field to store the state -->
+                            <input type="hidden" name="card-{{ notification.id }}" id="state-{{ notification.id }}" value="">
+                        </div>
+                        {% empty %}
+                            <li>No unread notifications available</li>
+                    {% endfor %}
                 </section>
             </div>
         </div>
@@ -367,7 +418,7 @@
         <section>
             <a  >Create Forms</a>
         </section>
-    </section>
+</section>
 
 
 <script>
@@ -424,6 +475,52 @@
         // Disable buttons after an action
         buttons.forEach(button => button.disabled = true);
         const url = "{% url 'my_forms:update_notification' %}?notificationId=" + encodeURIComponent(notificationId) + "&action=" + encodeURIComponent(action)
+    
+        // Send a request to the backend
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update the hidden input
+                    stateInput.value = action;
+    
+                    // Optional: Add visual feedback
+                    if (action === 'accept') {
+                        card.classList.add('border-success');
+                        card.classList.remove('border-danger');
+                    } else if (action === 'reject') {
+                        card.classList.add('border-danger');
+                        card.classList.remove('border-success');
+                    }
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating notification:', error);
+                buttons.forEach(button => button.disabled = false); // Re-enable buttons on error
+                alert('There was an issue updating the notification. Please try again.');
+            });
+    }
+    
+</script>
+  
+
+
+<script>
+    function TeamNotificationAction(notificationId, action) {
+        const card = document.getElementById(`card-${notificationId}`);
+        const buttons = document.querySelectorAll(`#button-${notificationId} button`);
+        const stateInput = document.getElementById(`state-${notificationId}`);
+        
+        // Disable buttons after an action
+        buttons.forEach(button => button.disabled = true);
+        const url = "{% url 'teams:update_notification' %}?notificationId=" + encodeURIComponent(notificationId) + "&action=" + encodeURIComponent(action)
     
         // Send a request to the backend
         fetch(url)

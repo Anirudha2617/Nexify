@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'landing_page',
     'home',
     'club',
+    'teams',
     'event',
     'tracking',
     'tenders',

@@ -142,7 +142,7 @@ class Notification(models.Model):
 
     # Fields
     sent_from = models.ForeignKey(User, related_name = 'event_sent_notifications', on_delete=models.CASCADE )
-    event = models.ForeignKey(Registration_details, related_name = 'event_notifications', on_delete=models.CASCADE , null =True )
+    event = models.ForeignKey(Registration_details, related_name = 'event_notifications', on_delete=models.CASCADE , null =True , blank = True)
     user = models.ForeignKey(User, related_name = 'event_notifications', on_delete=models.CASCADE )
     title = models.CharField(max_length=255)
     message = models.TextField()
@@ -262,4 +262,9 @@ class Timeline(models.Model):
 
     @classmethod
     def timeline(cls , response):
-        return cls.objects.filter(response = response).order_by('date')
+        try:
+            return cls.objects.filter(response = response).order_by('date')
+        except:
+            return cls.objects.none()
+        
+

@@ -24,9 +24,17 @@ urlpatterns = [
     # #Notification for both
     path('update_notification/', views.update_notification, name='update_notification'),
 
-    # #register
+    #register
     path('response/<int:response_id>/register', views.register, name='register'),
+    path('edit-team/<int:team_id>/', views.edit_register, name='edit_register'),
 
+    path('timeline/<int:response_id>/', views.timeline_create, name='timeline'),
+    # path('timeline/<int:response_id>/', views.timeline_bulk_edit, name='timeline_bulk_edit'),
+    path('response/timelines/<int:response_id>/', views.timeline_list, name='timeline_list'),
+    path('timelines/<int:pk>/edit/', views.timeline_edit, name='timeline_edit'),
+    path('response/timelines/new/<int:response_id>/', views.timeline_create, name='timeline_create'),
+    path('timelines/<int:pk>/delete/', views.timeline_delete, name='timeline_delete'),
 
 ]
 
+ 

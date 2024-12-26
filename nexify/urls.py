@@ -27,6 +27,7 @@ urlpatterns = [
     path('home/',include('home.urls')),
     path('club/',include('club.urls')),
     path('event/',include('event.urls')),
+    path('teams/',include('teams.urls')),
     # path('forms/',include('forms.urls')),
     path('my_forms/',include('my_forms.urls')),
     path('tracking/',include('tracking.urls')),

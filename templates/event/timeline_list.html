@@ -1,0 +1,20 @@
+{% extends "allauth/layouts/main_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load allauth account %}
+{% block head_title %}
+{% trans "Profile" %}
+{% endblock head_title %}
+{% block pages %}
+<h1>Timeline Events</h1>
+<ul>
+    {% for timeline in timelines %}
+    <li>
+        {{ timeline.event }} - {{ timeline.date }}
+        <a href="{% url 'event:timeline_edit' timeline.id %}">Edit</a>
+        <a href="{% url 'event:timeline_delete' timeline.id %}" onclick="return confirm('Are you sure?');">Delete</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock pages %}
