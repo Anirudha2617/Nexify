@@ -28,10 +28,12 @@ urlpatterns = [
     path('club/',include('club.urls')),
     path('event/',include('event.urls')),
     path('teams/',include('teams.urls')),
+    path("github/", include("github_commits.urls")),
     # path('forms/',include('forms.urls')),
     path('my_forms/',include('my_forms.urls')),
     path('tracking/',include('tracking.urls')),
     path('tenders/',include('tenders.urls')),
+    path('small_events/',include('small_events.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,220 @@
+{% extends "allauth/layouts/main_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load allauth account %}
+{% block head_title %}
+{% trans "Profile" %}
+{% endblock head_title %}
+{% block stylesheet %}
+
+{% endblock stylesheet %}
+{% block pages %}
+
+<section class="section_profile">
+    <div class="row" style="padding: 1rem;padding-top: 0;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6" style="display: flex;align-items: center;justify-content: center;">
+                    <img src="../../static/assets/img/landing/Forms-bro.svg" alt="" style="width: 400px;">
+                </div>
+                <div class="col-md-6">
+                    <h1>Form Overview</h1>
+                    <form method="post" enctype="multipart/form-data" style="width: 100%;">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <input type="hidden" id="extrapage" name="extrapage" value="false">
+                        <div class="container">
+                            <div class="row mb-3" style="padding: 1rem; padding-top: 0;">
+                                <h4 style="color: white;" class="mb-3">Add Multiple Questions to Form: </h4>
+                                        
+                                <div id="question-containers" class="row"></div> <!-- Container for all dynamic questions -->
+
+                                <div class="col-md-12">
+                                    <button type="button" class="btn btn-primary" onclick="addQuestion()">Add Question</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success" onclick="setExtraPage(true)">Save and add another page</button>
+                        <button type="submit" class="btn btn-success" onclick="setExtraPage(false)">Create Form</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .input-group .form-control {
+        width: 100%; /* Ensure inputs take the full width */
+    }
+
+    #choices-container-${index} {
+        margin-top: 1rem; /* Add some space between the container and other elements */
+    }
+
+    .input-group.mb-2 {
+        display: flex;
+        flex-wrap: wrap; /* Ensure inputs fit well in responsive layouts */
+        gap: 0.5rem; /* Add space between input fields */
+    }
+
+    .btn-secondary {
+        margin-top: 0.5rem; /* Add spacing for the "Add another option" button */
+    }
+</style>
+
+<script>
+    function setExtraPage(value) {
+      document.getElementById("extrapage").value = value;
+    }
+    // Function to show/hide input fields based on the selected question type
+    function updateQuestionType(index) {
+      const questionType = document.getElementById(
+        "question_type_" + index
+      ).value;
+      const choicesContainer = document.getElementById(
+        "choices-container-" + index
+      );
+  
+      // Hide all fields initially
+      choicesContainer.style.display = "none";
+  
+      // Show fields based on the selected question type
+      if (
+        questionType === "MC" ||
+        questionType === "DD" ||
+        questionType === "JSON"
+      ) {
+        choicesContainer.style.display = "block"; // Show options for MC or DD
+      }
+    }
+  
+    // Function to add a new input field for more choices (MC/DD)
+    function addChoiceField(index) {
+      const container = document.getElementById("choices-container-" + index);
+  
+      // Create a new choice input field
+      const newChoice = document.createElement("input");
+      newChoice.type = "text";
+      newChoice.classList.add("form-control", "mb-2");
+      newChoice.name = "choice_" + index + "[]"; // Unique name for each choice
+      newChoice.placeholder =
+        "Option " + (container.getElementsByTagName("input").length + 1);
+  
+      // Append the new choice input field to the container
+      container.appendChild(newChoice);
+    }
+  
+    // Function to dynamically add a new question
+    function addQuestion(question = null) {
+      const questionContainer = document.getElementById("question-containers");
+      const index = questionContainer.children.length; // Get the current index for the new question container
+  
+      // Extract details from the provided question object if present
+      const questionText = question?.text || ""; // Default to an empty string if no question text is provided
+      const questionType = question?.question_type || ""; // Default to an empty string if no type is provided
+      const questionChoices = question?.choices || []; // Default to an empty array if no choices are provided
+      const questionId = question?.id || null; // Default to an empty array if no choices are provided
+  
+      // Create a new question container with Bootstrap classes
+      const newQuestion = document.createElement("div");
+      newQuestion.classList.add("question-container", "col-md-6", "mb-4");
+  
+      // HTML content for the new question
+      newQuestion.innerHTML = `
+              <div class="card p-3">
+                  <div class="input-group mb-3">
+                      ${
+                        questionId
+                          ? `<input type="hidden" name="question_id_${index}" value="${questionId}">`
+                          : ""
+                      }
+                      <label for="question_text_${index}" class="form-label">Question Text:</label>
+                      <input type="text" id="question_text_${index}" name="question_text_${index}" class="form-control" value="${questionText}" required>
+                  </div>
+      
+                  <div class="input-group mb-3">
+                      <label for="question_type_${index}" class="form-label">Question Type:</label>
+                      <select id="question_type_${index}" name="question_type_${index}" class="form-select" onchange="updateQuestionType(${index})" required>
+                          <option value="">Select type</option>
+                          <option value="TEXT" ${
+                            questionType === "TEXT" ? "selected" : ""
+                          }>Text</option>
+                          <option value="MC" ${
+                            questionType === "MC" ? "selected" : ""
+                          }>Multiple Choice</option>
+                          <option value="SA" ${
+                            questionType === "SA" ? "selected" : ""
+                          }>Short Answer</option>
+                          <option value="LA" ${
+                            questionType === "LA" ? "selected" : ""
+                          }>Long Answer</option>
+                          <option value="DD" ${
+                            questionType === "DD" ? "selected" : ""
+                          }>Dropdown</option>
+                          <option value="DT" ${
+                            questionType === "DT" ? "selected" : ""
+                          }>Date and Time</option>
+                          <option value="IMG" ${
+                            questionType === "IMG" ? "selected" : ""
+                          }>Image</option>
+                          <option value="JSON" ${
+                            questionType === "JSON" ? "selected" : ""
+                          }>JSON</option>
+                          <option value="GITHUB" ${
+                            questionType === "GITHUB" ? "selected" : ""
+                          }>GITHUB</option>
+                      </select>
+                  </div>
+      
+                  <!-- Container for Multiple Choice, Dropdown, or JSON options -->
+                  <div id="choices-container-${index}" class="input-group mb-3" style="${
+                    ["MC", "DD", "JSON"].includes(questionType)
+                      ? "display: block;"
+                      : "display: none;"
+                  }">
+                      <label class="form-label">Choices:</label>
+                      ${questionChoices
+                        .map(
+                          (choice, choiceIndex) => `
+                              <input type="text" class="form-control mb-2" name="choice_${index}[]" value="${choice}" placeholder="Option ${
+                            choiceIndex + 1
+                          }">
+                          `
+                        )
+                        .join("")}
+                      <button type="button" class="btn btn-secondary" onclick="addChoiceField(${index})">Add another option</button>
+                  </div>
+      
+                  <button type="button" class="btn btn-danger mt-2" onclick="removeQuestion(this)">Remove Question</button>
+              </div>
+          `;
+  
+      // Append the new question container to the main container
+      questionContainer.appendChild(newQuestion);
+  
+      // If the question object is provided, update the type logic
+      if (questionType) {
+        updateQuestionType(index);
+      }
+    }
+  
+    // Function to remove a question container
+    function removeQuestion(button) {
+      const questionContainer = button.closest(".question-container");
+      questionContainer.remove();
+    }
+  
+    // Initialize with one question form on page load
+    window.onload = function () {
+      // Define the questions array
+      const questions = JSON.parse("{{ questions|escapejs }}");
+  
+      // Iterate through the questions and call addQuestion for each
+      questions.forEach((question) => addQuestion(question));
+    };
+    
+  </script>
+
+{% endblock pages %}

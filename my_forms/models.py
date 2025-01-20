@@ -17,14 +17,38 @@ class Form(models.Model):
         related_name='created_forms'
     )
     form_type = models.CharField(max_length=40, default  = 'miscillineous')
+    is_event = models.BooleanField(default=False, null=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
     image = models.ImageField(upload_to='form_images/', blank=True, null=True)  # Store image file path
     is_public = models.BooleanField(default=False)
+    multiple_submissions = models.BooleanField(default=True)
+    form_event = models.ForeignKey("event.Event" , on_delete=models.CASCADE , null = True , blank = True ) 
+
+    def save(self, *args, **kwargs):
+        # Check if `submitted_by` is None
+        if not self.created_by:
+            raise ValidationError("The 'created_by' field cannot be None.")
+
+        # Check if the instance already exists in the database
+        if self.pk is not None:
+            # Retrieve the current instance from the database
+            current_instance = Form.objects.get(pk=self.pk)
+
+            # Prevent modification of `created_by` field
+            if current_instance.created_by != self.created_by:
+                raise ValidationError("The 'created_by' field cannot be altered once it has been set.")
+        # Call the parent class's save method
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
-
+    
+    def get_responses(self,user):
+        responses = self.responses.filter(submitted_by=user)
+        # print("Responses:",responses)
+        return responses
+    
 class Response(models.Model):
     submitted_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='submitted_by')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -32,6 +56,22 @@ class Response(models.Model):
 
     def __str__(self):
         return f'Response to {self.form.title} on {self.created_at}'
+    def save(self, *args, **kwargs):
+        # Check if `submitted_by` is None
+        if not self.submitted_by:
+            raise ValidationError("The 'submitted_by' field cannot be None.")
+
+        # Check if the instance already exists in the database
+        if self.pk is not None:
+            # Retrieve the current instance from the database
+            current_instance = Response.objects.get(pk=self.pk)
+
+            # Prevent modification of `submitted_by` field
+            if current_instance.submitted_by != self.submitted_by:
+                raise ValidationError("The 'submitted_by' field cannot be altered once it has been set.")
+
+        # Call the parent class's save method
+        return super().save(*args, **kwargs)
 
 class Registration_details(models.Model):
     INDIVIDUAL  = "individual"
@@ -159,19 +199,17 @@ class Notification(models.Model):
 
     def action_true(self):
         # Action when `action_button` is True
+        self.mark_as_read()
         self.event.invited_users.remove(self.user)
         self.event.accepted_users.add(self.user)
         self.save()
 
     def action_false(self):
         # Action when `action_button` is False
+        self.mark_as_read()
         self.event.invited_users.remove(self.user)
         self.event.rejected_users.add(self.user)
         print("User poppeed......")
-
-
-
-
 
 class Question(models.Model):
     TEXT = 'TEXT'
@@ -181,6 +219,8 @@ class Question(models.Model):
     DROP_DOWN = 'DD'
     DATE_TIME = 'DT'
     IMAGE_TYPE ='IMG'
+    JSON ='JSON'
+    GITHUB ='GITHUB'
 
     QUESTION_TYPES = [
         (TEXT, 'Text'),
@@ -190,12 +230,15 @@ class Question(models.Model):
         (DROP_DOWN, 'Dropdown'),
         (DATE_TIME, 'Date and Time'),
         (IMAGE_TYPE, 'Image'),
+        (JSON, 'Json'),
+        (GITHUB, 'Github'),
     ]
 
     form = models.ForeignKey(Form, related_name='questions', on_delete=models.CASCADE)
     text = models.CharField(max_length=255)
     question_type = models.CharField(choices=QUESTION_TYPES, max_length=20, default=TEXT)
     choices = models.TextField(blank=True, null=True)  # Store choices as comma-separated values
+    json_choices = models.JSONField(blank=True, null=True)  # For JSON-based choices
     image = models.ImageField(upload_to='question_images/', blank=True, null=True)  # Store image file path
 
     def __str__(self):
@@ -211,6 +254,7 @@ class Answer(models.Model):
     response = models.ForeignKey(Response, related_name='answers', on_delete=models.CASCADE)
     question = models.ForeignKey(Question, related_name='answers', on_delete=models.CASCADE)
     answer_text = models.TextField(blank=True, null=True)  # Store the answer as text, regardless of question type
+    json_answer = models.JSONField(blank=True, null=True)  # For JSON-based choices
     answer_image = models.ImageField(upload_to='uploads/', blank=True, null=True)  # New field for images
 
     def __str__(self):
@@ -244,29 +288,31 @@ class ExtraDetails(models.Model):
 
 class ExtraQuestion(models.Model):
     TEXT = 'TEXT'
-    SINGLE_CHOICE = 'SC'
     MULTIPLE_CHOICE = 'MC'
     SHORT_ANSWER = 'SA'
     LONG_ANSWER = 'LA'
     DROP_DOWN = 'DD'
     DATE_TIME = 'DT'
     IMAGE_TYPE ='IMG'
+    JSON ='JSON'
+    GITHUB ='GITHUB'
 
     QUESTION_TYPES = [
         (TEXT, 'Text'),
-        (SINGLE_CHOICE, 'Single Choice'),
         (MULTIPLE_CHOICE, 'Multiple Choice'),
         (SHORT_ANSWER, 'Short Answer'),
         (LONG_ANSWER, 'Long Answer'),
         (DROP_DOWN, 'Dropdown'),
         (DATE_TIME, 'Date and Time'),
         (IMAGE_TYPE, 'Image'),
+        (GITHUB, 'GITHUB'),
     ]
 
     form = models.ForeignKey(ExtraDetails, related_name='questions', on_delete=models.CASCADE)
     text = models.CharField(max_length=255)
     question_type = models.CharField(choices=QUESTION_TYPES, max_length=20, default=TEXT)
     choices = models.TextField(blank=True, null=True)  # Store choices as comma-separated values
+    json_choices = models.JSONField(blank=True, null=True)  # For JSON-based choices
     image = models.ImageField(upload_to='question_images/', blank=True, null=True)  # Store image file path
 
     def __str__(self):
@@ -281,6 +327,7 @@ class ExtraQuestion(models.Model):
 class ExtraResponse(models.Model):
     form = models.ForeignKey(ExtraDetails, related_name='responses', on_delete=models.CASCADE)
     response = models.ForeignKey(Response, related_name='extra_responses', on_delete=models.CASCADE ,blank = True , null = True)
+    page_no = models.IntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -291,6 +338,9 @@ class ExtraAnswer(models.Model):
     question = models.ForeignKey(ExtraQuestion, related_name='answers', on_delete=models.CASCADE)
     answer_text = models.TextField(blank=True, null=True)  # Store the answer as text, regardless of question type
     answer_image = models.ImageField(upload_to='uploads/', blank=True, null=True)  # New field for images
+    json_answer = models.JSONField(blank=True, null=True)  # For JSON-based choices
+    # answer_event = models.ManyToManyField('Event', blank=True, null=True) # Event
+    # answer_club = models.ManyToManyField('ClubDetails', blank=True, null=True)
 
     def __str__(self):
         return f'Answer to {self.question.text}'

@@ -11,31 +11,64 @@ from club.models import ClubMember, ClubDetails
 # from django import forms
 # from .models import Event
 
+from django import forms
+from django.utils.dateparse import parse_datetime
+from django.core.exceptions import ValidationError
+from datetime import datetime
+
 class EventCreateForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['created_by', 'logo', 'opportunity_type', 'opportunity_sub_type', 'visibility', 'opportunity_title', 'organization', 'mode_of_event', 'categories', 'skills_to_be_assessed', 'about_opportunity', 'website_url', 'festival_name']
+        fields = ['created_by', 
+                  'logo', 
+                  'opportunity_type', 
+                  'opportunity_sub_type', 
+                  'visibility', 
+                  'event_start',
+                  'event_end',
+                  'opportunity_title', 
+                  'organization', 
+                  'mode_of_event', 
+                  'categories', 
+                  'skills_to_be_assessed', 
+                  'about_opportunity', 
+                  'website_url', 
+                  'festival_name']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Dynamically update the choices for opportunity_sub_type based on opportunity_type
         if self.instance and self.instance.opportunity_type:
             self.fields['opportunity_sub_type'].choices = self.get_sub_type_choices(self.instance.opportunity_type)
 
-        # Set visibility and mode_of_event widgets to radio buttons
         self.fields['visibility'].widget = forms.RadioSelect()
         self.fields['mode_of_event'].widget = forms.RadioSelect()
 
-        # Update choices for visibility and mode_of_event
         self.fields['visibility'].choices = Event.VISIBILITY_CHOICES
         self.fields['mode_of_event'].choices = Event.MODE_CHOICES
 
-        # Categories field as CheckboxSelectMultiple 
         self.fields['categories'].widget = forms.CheckboxSelectMultiple()
-
-        # Use CKEditor for the about_opportunity field
         self.fields['about_opportunity'].widget = forms.Textarea()
+
+        # Format the instance data for the datetime-local input
+        if self.instance and self.instance.event_start:
+            self.fields['event_start'].widget.attrs['value'] = self.instance.event_start.strftime('%Y-%m-%dT%H:%M')
+        if self.instance and self.instance.event_end:
+            self.fields['event_end'].widget.attrs['value'] = self.instance.event_end.strftime('%Y-%m-%dT%H:%M')
+
+        self.fields['event_start'].widget = forms.TextInput(
+            attrs={
+                'placeholder': 'YYYY-MM-DDTHH:MM',
+                'type': 'datetime-local',
+            }
+        )
+        self.fields['event_end'].widget = forms.TextInput(
+            attrs={
+                'placeholder': 'YYYY-MM-DDTHH:MM',
+                'type': 'datetime-local',
+            }
+        )
+
 
     def get_sub_type_choices(self, opportunity_type):
         if opportunity_type == 'General and case competition':
@@ -47,9 +80,35 @@ class EventCreateForm(forms.ModelForm):
         else:
             return []
 
-    def save(self, user ,  *args, **kwargs):
+    def clean(self):
+        cleaned_data = super().clean()
+
+        event_start = cleaned_data.get('event_start')
+        event_end = cleaned_data.get('event_end')
+
+        # Parse the datetime fields if they are strings
+        if isinstance(event_start, str):
+            event_start = parse_datetime(event_start)
+            if not event_start:
+                raise ValidationError({'event_start': 'Invalid start date format. Use YYYY-MM-DDTHH:MM.'})
+            cleaned_data['event_start'] = event_start
+
+        if isinstance(event_end, str):
+            event_end = parse_datetime(event_end)
+            if not event_end:
+                raise ValidationError({'event_end': 'Invalid end date format. Use YYYY-MM-DDTHH:MM.'})
+            cleaned_data['event_end'] = event_end
+
+        # Validate that start date is before end date
+        if event_start and event_end and event_start >= event_end:
+            raise ValidationError({'event_end': 'End date must be after the start date.'})
+
+        return cleaned_data
+
+    def save(self, user, *args, **kwargs):
         self.instance.created_by = user
         return super().save(*args, **kwargs)
+
         
 class RegistrationDetailsForm(forms.ModelForm):
     class Meta:

@@ -46,6 +46,7 @@ class Event(models.Model):
     opportunity_type = models.CharField(choices=OPPORTUNITY_TYPES, max_length=35)
     opportunity_sub_type = models.CharField(max_length=30, choices=[], blank=True, null=True)
     logo = models.ImageField(upload_to='question_images/', blank=True, null=True)  # Store image file path
+    bg_image = models.ImageField(upload_to='bg_images/', blank=True, null=True)  # Store image file path
     visibility = models.CharField(choices=VISIBILITY_CHOICES, max_length=10, default='public')  # New field
     opportunity_title = models.CharField(max_length= 190, blank=True, null=True)
     organization = models.ForeignKey(ClubDetails , blank=True, null=True ,on_delete=models.CASCADE)
@@ -57,11 +58,21 @@ class Event(models.Model):
     categories = models.ManyToManyField('Category', blank=True, help_text="Select at least one category.")
     skills_to_be_assessed = models.TextField(blank=True, null=True, help_text="List required skills for participants.")
     about_opportunity = RichTextField(help_text="Mention all the guidelines like eligibility, format, etc.", blank=True, null=True)
+    event_start = models.DateTimeField(blank = False , null = False , default = datetime.now())
+    event_end = models.DateTimeField(blank = True , null = True )
 
+    Registration_detail = models.ForeignKey(
+        "Registration_details",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="events"  # Specify a unique name for the reverse relation
+    )
+
+    user_details_form = models.ForeignKey("my_forms.Form", on_delete=models.CASCADE, null=True, blank=True)
 
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='created_by')
     created_at = models.DateTimeField(auto_now_add=True)
-
 
 
     def __str__(self):
@@ -77,15 +88,44 @@ class Event(models.Model):
         else:
             self._meta.get_field('opportunity_sub_type').choices = []
 
+            
+
         super().save(*args, **kwargs)
 
     @classmethod
-    def get_forms(cls, user):
+    def get_hosted_event(cls, user):
         """Return all forms with responses."""
         return cls.objects.filter(
             created_by=user,
-            form = None
         )
+
+    # @classmethod
+    # def get_participated_event(cls, user):
+    #     pass
+
+    def is_public(self):
+        if self.visibility == 'public':
+            return True
+        else:
+            return False
+    
+    def add_members(self , user):
+        if user not in self.Registration_detail.accepted_users.all():
+            if self.visibility == 'public':
+                self.Registration_detail.accepted_users.add(user)
+                self.Registration_detail.save()
+    
+    def is_started(self):
+        if self.event_start <= datetime.now():
+            return True
+        else:
+            return False
+    
+    def is_ended(self):
+        if self.event_end <= datetime.now():
+            return True
+        else:
+            return False
 
 
 class Registration_details(models.Model):
@@ -132,12 +172,14 @@ class Notification(models.Model):
     WARNING = 'warning'
     ERROR = 'error'
     SUCCESS = 'success'
+    REQUEST = 'request'
 
     NOTIFICATION_TYPES = [
         (INFO, 'Info'),
         (WARNING, 'Warning'),
         (ERROR, 'Error'),
         (SUCCESS, 'Success'),
+        (REQUEST, 'Request'),
     ]
 
     # Fields

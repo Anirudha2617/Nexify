@@ -1,0 +1,24 @@
+<h2>Stored Repositories</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Repository</th>
+            <th>User</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for repo in repositories %}
+        <tr>
+            <td>{{ repo.name }}</td>
+            <td>{{ repo.user.username }}</td>
+            <td>
+                <a href="{% url 'github:update_commits' repo.id %}">Update</a>
+                <a href="{% url 'github:view_commits' repo.id %}">View</a>
+                <a href="{% url 'github:edit_repo' repo.id %}">edit repo</a>
+            </td>
+        </tr>
+
+        {% endfor %}
+    </tbody>
+</table>

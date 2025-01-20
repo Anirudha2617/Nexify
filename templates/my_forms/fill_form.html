@@ -1,0 +1,345 @@
+{% extends "allauth/layouts/main_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load custom_filters %}
+{% load allauth account %}
+{% block head_title %}
+{% trans "Profile" %}
+{% endblock head_title %}
+{% block stylesheet %}
+
+<style>
+    /* General Body Styling */
+    body {
+        background-color: #0c1117;
+        color: rgb(213, 211, 211);
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        color: white;
+    }
+    h1 {
+        color: white;
+        text-align: center;
+    }
+    p {
+        color: rgb(213, 211, 211);
+        margin-bottom: 1em;
+        text-align: center;
+    }
+    
+    /* Form Container */
+    .form {
+        background-color: #1b1f26;
+        padding: 20px;
+        border-radius: 1rem;
+        max-width: 300px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .form img {
+        max-width: 100%;
+        border-radius: 10px;
+        margin-bottom: 1em;
+    }
+
+    /* Input and Textarea Styling */
+    input[type="text"],
+    input[type="datetime-local"],
+    select,
+    textarea,
+    input[type="file"] {
+        width: 100%;
+        padding: 0.5em;
+        border: 1px solid #a19f9f;
+        border-radius: 5px;
+        background-color: #0c1117;
+        color: white;
+        margin-bottom: 1em;
+    }
+    input[type="radio"] {
+        margin-right: 5px;
+    }
+    
+    label {
+        color: rgb(213, 211, 211);
+    }
+
+    /* Button Styling */
+    .button-container {
+        text-align: center;
+        margin-top: 20px;
+    }
+    button {
+        border: 1px solid #a19f9f;
+        border-radius: 5px;
+        color: white;
+        background-color: #0c1117;
+        padding: 0.5em 1em;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    button:hover {
+        background-color: #299afd;
+    }
+
+    /* Image Container */
+    .image-container {
+        background-color: #1b1f26;
+        border: 1px solid #a19f9f;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 1em;
+    }
+
+    /* Links */
+    a {
+        color: #299afd;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+        margin-top: 1em;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
+<style>
+    /* Progress Bar Container */
+    .progress-bar-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+        padding: 10px 0;
+    }
+
+    /* Individual Progress Items */
+    .progress-item {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px 20px;
+        background-color: transparent;
+        color: #e0e0e0;
+        font-size: 1rem;
+        border-radius: 10px;
+        border: 2px solid #333;
+        transition: all 0.3s ease-in-out;
+    }
+
+    /* Active State */
+    .progress-item.active {
+        background-color: #299afd;
+        color: #ffffff;
+        border-color: #299afd;
+    }
+
+    /* Hover Effects */
+    .progress-item:hover {
+        background-color: #1e8ef7;
+        color: #ffffff;
+        cursor: pointer;
+    }
+
+    /* Text Styling */
+    .progress-item span {
+        font-weight: bold;
+    }
+</style>
+<style>
+    /* Image Container Styling */
+    .image-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        background-color: #1b1f26;
+        border: 1px solid #a19f9f;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        width: 100%;
+        max-width: 500px;
+    }
+
+    /* Uploaded Image Styling */
+    .uploaded-image img {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 8px;
+        object-fit: contain;
+        margin-bottom: 10px;
+    }
+
+    /* File Input Container Styling */
+    .file-input-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .file-input-container label {
+        color: #d5d3d3;
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+
+    .file-input-container input[type="file"] {
+        width: 100%;
+        padding: 5px;
+        background-color: #0c1117;
+        color: white;
+        border: 1px solid #a19f9f;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .image-container {
+            width: 100%;
+        }
+    }
+</style>
+
+<link rel="stylesheet" href="{% static 'assets/css/forms/form_detail.css' %}">
+
+{% endblock stylesheet %}
+{% block pages %}
+<section class="section_profile">
+    <div class="row" style="padding: 1rem;padding-top: 0;">
+        <h1 style="color: white;">{{ form.title }}</h1>
+        <p style="color: white;">{{ form.description }}</p>
+
+
+        <!-- Progress Bar Section -->
+        <div class="progress-bar-container">
+            <div class="progress-item {% if present_page == -1 %}active{% endif %}">
+                <span>Main</span>
+            </div>
+            {% for page in pages %}
+                <div class="progress-item {% if forloop.counter0 == present_page %}active{% endif %}">
+                    <span>{{ page }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+    
+        <form method="post" action="" enctype="multipart/form-data" style="align-items: center; justify-content: center; display: flex;">
+            <div>
+                <input type="hidden" id="all_pages" name="all_pages" value='{{ pages|escapejs }}'>
+                <input type="hidden" id="present_page" name="present_page" value='{{ present_page }}'>
+                <input type="hidden" id="is_event_personal_details" name="is_event_personal_details" value='{{ is_event_personal_details }}'>
+                
+            </div>    
+            <div class="form">
+                {% if form.image %}
+                    <img src="{{ form.image.url }}" />
+                {% endif %}
+                {% csrf_token %}
+    
+                {% for question in questions %}
+                    <div class='question-id {{ question.question_type }}'>
+                        <p>{{ question.text }}</p>
+    
+                        {% if question.question_type == 'TEXT' or question.question_type == 'SA' %}
+                            <input type="text" name="question_{{  question.id}}" value="{% process_answer answers question.id 'TEXT' %}" required {% if read_only %}disabled{% endif %}><br>
+    
+                        {% elif question.question_type == 'LA' %}
+                            <textarea name="question_{{ question.id }}" rows="4" required {% if read_only %}disabled{% endif %}>{% process_answer answers question.id 'LA' %}</textarea><br>
+    
+                        {% elif question.question_type == 'MC' %}
+                            {% process_answer answers question.id 'MC' as selected_choices %}
+                            {% for choice in question.get_choices %}
+                                <label>
+                                    <input type="radio" name="question_{{ question.id }}" value="{{ choice }}" required {% if read_only %}disabled{% endif %}
+                                    {% if choice in selected_choices %}checked{% endif %}>                                
+                                    {{ choice }}
+                                </label><br>
+                            {% endfor %}
+    
+                        {% elif question.question_type == 'DD' %}
+                            {% process_answer answers question.id 'MC' as selected_choices %}
+                            <select name="question_{{ question.id }}" required>
+                                <option value="">Select an option</option>
+                                {% for choice in question.get_choices %}
+                                    <option value="{{ choice }}" {% if choice in selected_choices %}selected{% endif %} {% if read_only %}disabled{% endif %}>
+                                        {{ choice }}
+                                    </option>
+                                {% endfor %}
+                            </select><br>
+    
+                        {% elif question.question_type == 'DT' %}
+                            <input type="datetime-local" name="question_{{ question.id }}" {% if read_only %}disabled{% endif %} ><br>
+    
+                            {% elif question.question_type == 'IMG' %}
+                            <div class="image-container">
+                                {% process_answer answers question.id 'IMG' as answer_image %}
+                                {% if answer_image %}
+                                    <div class="uploaded-image">
+                                        <img src="{{ answer_image.url }}" alt="Uploaded Image" {% if read_only %}disabled{% endif %}>
+                                    </div>
+                                {% endif %}
+                                <div class="file-input-container">
+                                    <label for="question_{{ question.id }}">Upload Image:</label>
+                                    <input type="file" id="question_{{ question.id }}" name="question_{{ question.id }}" required {% if read_only %}disabled{% endif %} >
+                                </div>
+                            </div>
+                            
+
+
+                        {% elif question.question_type == 'JSON' %}
+                            {% process_answer answers question.id 'JSON' as selected_choices %}
+                            {% for choice in question.json_choices|json_loads %}
+                                <label>
+                                    <input type="checkbox" name="question_{{ question.id }}" value="{{ choice }}" {% if read_only %}disabled{% endif %}
+                                            {% if choice in selected_choices %}checked{% endif %}>
+                                    {{ choice }}
+                                </label><br>
+                            {% endfor %}
+
+                        {% elif question.question_type == 'GITHUB' %}
+                            {% process_answer answers question.id 'GITHUB' as answer %} 
+                            <div>
+                                <label for="question_{{ question.id }}">GitHub Repository:{{answer}} {{answer.branches}}</label>
+                                {% include "github_commits/single_page.html" with question=question branches=answer.branches repo=answer.repo username=answer.username read_only=read_only%}
+                            </div>
+                        
+                            
+                        {% else %}
+                            <p>Unknown question type.</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+    
+                <div class="button-container" style="margin: 0;padding: 0;">
+                    <button style="margin: 0;padding: 0;" type="button" onclick="OnSubmit()">Next</button>
+
+                </div>
+            </div>
+        </form>
+
+    </div>
+</section>
+
+<script>
+    function OnSubmit(event) {
+        console.log("Entered");
+
+        let presentPageInput = document.getElementById('present_page');
+        let present_page = parseInt(presentPageInput.value, 10) || 0; 
+        presentPageInput.value = present_page;
+        console.log("Updated present_page:", present_page);
+        document.querySelector('form').submit();
+    }
+    window.onload = function() {
+        console.log("Page no:")
+        console.log(document.getElementById('present_page').value); // Automatically add the first question
+    }
+</script>
+
+{% endblock pages %}

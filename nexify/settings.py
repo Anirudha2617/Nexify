@@ -53,8 +53,9 @@ INSTALLED_APPS = [
     'event',
     'tracking',
     'tenders',
-    # 'forms',
+    'github_commits',
     'my_forms',
+    'small_events',
 
     'markdownify' #markdown readme
 ]

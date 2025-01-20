@@ -1,0 +1,10 @@
+<h2>Repositories of {{ username }}</h2>
+<ul>
+    {% for repo in repos %}
+    <li>
+        <a href="{% url 'repository_view' username=repo.owner.login repo_name=repo.name %}">
+            {{ repo.name }}
+        </a> - {{ repo.description }}
+    </li>
+    {% endfor %}
+</ul>

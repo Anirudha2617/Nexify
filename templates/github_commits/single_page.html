@@ -1,0 +1,226 @@
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Repository Viewer</title>
+</head>
+<body>
+    <section id="github-repo-viewer">
+        <h2>GitHub Repository Viewer</h2>
+        <label for="username_{{ question.id }}" id="username_label_{{ question.id }}">Enter GitHub Username:</label>
+        <input
+            type="text"
+            id="username_{{ question.id }}"
+            name="username_{{ question.id }}"
+            placeholder="GitHub Username"
+            {% if username %}value="{{ username }}"{% endif %}
+        />
+        <input
+            {% comment %} type="hidden" {% endcomment %}
+            id="repo_{{ question.id }}"
+            name="repo_{{ question.id }}"
+            {% if repo %}value="{{ repo.id }}"{% endif %}
+            
+        />
+        
+        <input
+            {% comment %} type="hidden" {% endcomment %}
+            id="branch_list_{{ question.id }}"
+            name="branch_list_{{ question.id }}"
+            {% if branches %}value="{% for branch in branches %}{{ branch.id }}{% if not forloop.last %},{% endif %}{% endfor %}"{% endif %}
+
+        />
+
+    
+        <button onclick="fetchRepositories(event)">Fetch Repositories</button>
+
+        <div id="repos">
+            <h3>Repositories</h3>
+            <p>Repositories will appear here after entering a GitHub username.</p>
+            <select id="repo-dropdown_{{ question.id }}" onchange="handleRepoSelection(this.value)">
+                {% if repo %}
+                    <option value="{{ repo.name }}">
+                        {{ repo.name }} - {{ repo.description|default:"No description" }}
+                    </option>
+                {% else %}
+                    <option value="" disabled selected>Select a repository...</option>
+                {% endif %}
+            </select>
+        </div>
+
+        <div id="branches">
+            <h3>Branches</h3>
+            <p>Branches will appear here after selecting a repository.</p>
+            <select id="branches-dropdown_{{ question.id }}" onchange="handleBranchSelection(this.value)">
+                {% for branch in branches %}
+                    <option value="{{ branch.name }}">
+                        {{ branch.name }} - {{ branch.description|default:"No description" }}
+                    </option>
+                {% empty %}
+                    <option value="" disabled selected>No branches present.</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="commit-history">
+            <h3>Commit History</h3>
+            <p>Commit history will appear here after selecting a branch.</p>
+            <div id="commit-list_{{ question.id }}">
+                {% for branch in branches %}
+                    <h2>Branch name:{{ branch.name }}</h2>
+                    {% for commit in branch.commits.all %}
+                    <li>
+                        <strong>{{ commit.author }}</strong> - {{ commit.message }} ({{ commit.date }})
+                    </li>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+
+    <script>
+        async function fetchRepositories(event) {
+            event.preventDefault(); // Prevent form submission or button default behavior
+            const username = document.getElementById("username_{{ question.id }}").value;
+            const repoDropdown = document.getElementById("repo-dropdown_{{ question.id }}");
+
+            if (!username) {
+                alert("Please enter a GitHub username!");
+                return;
+            }
+
+            // Clear dropdown and show loading
+            repoDropdown.innerHTML = "<option disabled selected>Loading...</option>";
+
+            const url = "{% url 'github:github_repo_commit' %}";
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": "{{ csrf_token }}",
+                    },
+                    body: `username=${encodeURIComponent(username)}`,
+                });
+
+                const data = await response.json();
+
+                if (data.repos && data.repos.length > 0) {
+                    // Populate the dropdown
+                    repoDropdown.innerHTML = '<option disabled selected>Select a repository...</option>';
+                    repoDropdown.innerHTML += '<option value="monitor_all">Monitor All Repositories</option>';
+
+                    data.repos.forEach((repo) => {
+                        const option = document.createElement("option");
+                        option.value = repo.name;
+                        option.textContent = `${repo.name} - ${repo.description || "No description"}`;
+                        repoDropdown.appendChild(option);
+                    });
+                } else {
+                    repoDropdown.innerHTML = '<option disabled selected>No repositories found.</option>';
+                }
+            } catch (error) {
+                console.error("Error fetching repositories:", error);
+                repoDropdown.innerHTML = '<option disabled selected>Error fetching repositories.</option>';
+            }
+        }
+
+        async function fetchBranches(username, repoName) {
+            const branchesDropdown = document.getElementById("branches-dropdown_{{ question.id }}");
+            branchesDropdown.innerHTML = "<option disabled selected>Loading...</option>";
+
+            const url = "{% url 'github:fetch_branches' %}";
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": "{{ csrf_token }}",
+                    },
+                    body: `username=${encodeURIComponent(username)}&repo_name=${encodeURIComponent(repoName)}`,
+                });
+
+                const data = await response.json();
+
+                if (data.branches && data.branches.length > 0) {
+                    branchesDropdown.innerHTML = '<option disabled selected>Select a branch...</option>';
+                    const option = document.createElement("option");
+                    option.value = "monitor_all";
+                    option.textContent = "monitor all branches";
+                    branchesDropdown.appendChild(option);
+                    
+                    data.branches.forEach((branch) => {
+                        const option = document.createElement("option");
+                        option.value = branch.name;
+                        option.textContent = branch.name;
+                        branchesDropdown.appendChild(option);
+                    });
+                } else {
+                    branchesDropdown.innerHTML = '<option disabled selected>No branches found.</option>';
+                }
+            } catch (error) {
+                console.error("Error fetching branches:", error);
+                branchesDropdown.innerHTML = '<option disabled selected>Error fetching branches.</option>';
+            }
+        }
+
+        async function storeRepository(username, repoName, branchName) {
+            const url = "{% url 'github:store_repository' %}";
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": "{{ csrf_token }}",
+                    },
+                    body: `username=${encodeURIComponent(username)}&repo_name=${encodeURIComponent(repoName)}&branch_name=${encodeURIComponent(branchName)}`,
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const branchListField = document.getElementById("branch_list_{{ question.id }}");
+                    const ReopidField = document.getElementById("repo_{{ question.id }}");
+                    branchListField.value = data.branch_list;
+                    ReopidField.value = data.repo_id;
+                    console.log(ReopidField.value , data.repo_id);
+
+                    alert(`Repository "${repoName}" and branch "${branchName}" have been stored.`);
+                } else {
+                    alert("Failed to store repository.");
+                }
+            } catch (error) {
+                console.error("Error storing repository:", error);
+                alert("Error occurred while storing repository.");
+            }
+        }
+
+        function handleRepoSelection(selectedRepo) {
+            const username = document.getElementById("username_{{ question.id }}").value;
+
+            if (selectedRepo === "monitor_all") {
+                storeRepository(username, "all", "all");
+            } else if (selectedRepo) {
+                fetchBranches(username, selectedRepo);
+            }
+        }
+
+        function handleBranchSelection(selectedBranch) {
+            const username = document.getElementById("username_{{ question.id }}").value;
+            const repoName = document.getElementById("repo-dropdown_{{ question.id }}").value;
+
+            if (selectedBranch) {
+                storeRepository(username, repoName, selectedBranch);
+            }
+            if (selectedBranch === "monitor_all") {
+                storeRepository(username, repoName, "all");
+            } else if (selectedBranch) {
+                fetchBranches(username, selectedBranch);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+{% extends "allauth/layouts/main_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load allauth account %}
+{% block head_title %}
+{% trans "Profile" %}
+{% endblock head_title %}
+{% block stylesheet %}
+<style>
+    body {
+        background-color: #0c1117;
+        color: rgb(213, 211, 211);
+        font-family: 'Arial', sans-serif;
+    }
+
+    h2 {
+        color: white;
+        text-align: center;
+    }
+
+    p {
+        color: rgb(213, 211, 211);
+        font-size: 1.2em;
+        text-align: center;
+    }
+
+    .btn {
+        background-color: #1abc9c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        display: block;
+        margin: 20px auto;
+        text-align: center;
+    }
+
+    .btn:hover {
+        background-color: #16a085;
+    }
+</style>
+
+{% endblock stylesheet %}
+{% block pages %}
+
+<section class="section_profile">
+    <div class="row" style="padding: 1rem;padding-top: 0;">
+        <h1>Submissions for {{ form.title }}</h1>
+        <p>{{ form.description }}</p>
+    
+        {% if responses %}
+            {% for response in responses %}
+                <h2>Submission {{ forloop.counter }}</h2>
+                <p>Submitted on: {{ response.created_at }}</p>
+                
+                <p>Submitted by: {{ response.submitted_by }}</p>
+                <ul>
+                    {% for answer in response.answers.all %}
+                        <li>
+                            <strong>{{ answer.question.text }}:</strong> 
+                            {% if answer.answer_text %}
+                                {{ answer.answer_text }}
+                            {% endif %}
+                            
+                            {% if answer.answer_image %}
+                                <br>
+                                <img src="{{ answer.answer_image.url }}" alt="Uploaded Image" width="200" height="auto">
+                            {% endif %}
+                            
+                            {% if answer.json_answer %}
+                                {{ answer.json_answer }}
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                
+                {%for extra_response in response.extra_responses.all %}
+                    <p>Submitted on: {{ extra_response.created_at }}</p>
+                    <ul>
+                        {% for answer in extra_response.answers.all %}
+                            <li>
+                                <strong>{{ answer.question.text }}:</strong> 
+                                {% if answer.answer_text %}
+                                    {{ answer.answer_text }}
+                                {% endif %}
+                                
+                                {% if answer.answer_image %}
+                                    <br>
+                                    <img src="{{ answer.answer_image.url }}" alt="Uploaded Image" width="200" height="auto">
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endfor %}
+                <hr>
+            {% endfor %}
+        {% else %}
+            <p>No submissions have been made for this form yet.</p>
+        {% endif %}
+    
+        <a href="{% url 'event:main_view' %}">View Form</a>
+    </div>
+</section>
+
+{% endblock pages %}
+

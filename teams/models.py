@@ -1,12 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import User
 from event.models import Event
+from django.http import HttpResponse
 
 # Create your models here.
 
 class Team(models.Model):
     event = models.ForeignKey(Event, related_name = 'teams', on_delete = models.CASCADE)
     team_name = models.CharField(max_length=20 , null= False, blank=False)
+    description = models.TextField(max_length=200, null=True, blank=True)
     leader = models.ForeignKey(User , related_name = "leading_team" , on_delete=models.CASCADE)
     created_by = models.ForeignKey(User, related_name='created_teams', on_delete=models.CASCADE ,blank=True , null=True)
     invited_users = models.ManyToManyField(User, related_name='invited_teams', blank=True)
@@ -23,6 +25,13 @@ class Team(models.Model):
         for member in all_members:
             list.append(member)
         return list 
+    
+    def leave_team(self, user):
+        if user!=self.leader :
+            self.accepted_users.remove(user)
+            self.save()
+        else:
+            return HttpResponse("You are the leader, you can't leave!")
 
     @classmethod
     def not_in_any_team(cls, event):
@@ -30,6 +39,7 @@ class Team(models.Model):
         all_users = event.event_registration_details.first().accepted_users.all()
 
         # Get all users who are already in a team
+        
         users_in_teams = User.objects.filter(
             id__in=Team.objects.filter(event=event)
             .values_list("accepted_users__id", flat=True))
@@ -38,6 +48,17 @@ class Team(models.Model):
         users_not_in_any_team = all_users.exclude(id__in=users_in_teams)
 
         return users_not_in_any_team
+    def save(self, *args, **kwargs):
+        # Save the object first to ensure it has a primary key
+        if not self.pk:
+            super().save(*args, **kwargs)
+
+        # Add the leader to the accepted_users if not already present
+        if self.leader not in self.accepted_users.all():
+            self.accepted_users.add(self.leader)
+
+        # Save again after updating many-to-many relationships
+        return super().save(*args, **kwargs)
 
 
 class Notification(models.Model):
@@ -126,24 +147,32 @@ class Notification(models.Model):
         """
         Perform action based on the `action_button` value.
         """
+        print("Performing actions...")
         self.status = status
         self.mark_as_read()
         if self.status:
+            print("accepted")
             return self.action_true()
+            
         else:
+            print("rejected")
             return self.action_false()
 
     def action_true(self):
+        self.mark_as_read()
         self.team.invited_users.remove(self.user)
         # print("Removed user from invited_users list")
         if not self.team.accepted_users.filter(id=self.user.id).exists():
             self.team.accepted_users.add(self.user)
+        print("accepted")
         
         self.save()
         # print("Action accepted!")
 
 
     def action_false(self):
+        self.mark_as_read()
+        print("rejected")
         # Action when `action_button` is False
         self.team.invited_users.remove(self.user)
         if self.user not in self.team.rejected_users:

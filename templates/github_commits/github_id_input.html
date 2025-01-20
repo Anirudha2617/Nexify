@@ -1,0 +1,6 @@
+<h2>Enter GitHub Username</h2>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="username" placeholder="GitHub Username" required>
+    <button type="submit">Fetch Repositories</button>
+</form>

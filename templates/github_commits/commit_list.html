@@ -1,0 +1,13 @@
+<h2>Commits for {{ repository.name }}</h2>
+<ul>
+    {% for branch in branches %}
+        <h2>Branch name:{{ branch.name }}</h2>
+        {% for commit in branch.commits.all %}
+        <li>
+            <strong>{{ commit.author }}</strong> - {{ commit.message }} ({{ commit.date }})
+        </li>
+        {% endfor %}
+    {% endfor %}
+
+</ul>
+<a href="{% url 'github:database_view' %}">Back to Database View</a>

@@ -1,0 +1,11 @@
+<h2>Repositories of {{ username }}</h2>
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="username" value="{{ username }}">
+    <select name="repo_name" required>
+        {% for repo in repos %}
+        <option value="{{ repo.name }}">{{ repo.name }} - {{ repo.description }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Select Repository</button>
+</form>

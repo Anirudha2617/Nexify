@@ -23,10 +23,9 @@ class FormCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         if user:  # Check if user is provided
+            self.fields['created_by'].queryset = User.objects.filter(pk = user.pk)
             self.fields['created_by'].initial = user
-            print("User updated successfully:", user)
-        else:
-            print("User not provided")
+
             
 
 class FormCreateExtraDetails(forms.ModelForm):

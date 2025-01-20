@@ -9,58 +9,16 @@ from club.models import ClubMember, ClubDetails
 from django.http import HttpResponseForbidden , HttpResponseRedirect
 # from django.contrib import messages
 from django.http import JsonResponse
-from my_forms.models import Form
+from my_forms.models import Form , Question
 from my_forms.models import Notification as Form_Notifications
 
 from teams.forms import TeamForm
 from teams.models import Team
 from teams.models import Notification as Team_Notifications
+from django.urls import reverse
 
 
-def main_view(request):
-
-    opporttunity_type_data = Event.OPPORTUNITY_TYPES
-    opporttunity_type = []
-    for i in opporttunity_type_data:
-        opporttunity_type.append(i[0])
-
-    created_forms = []
-    created_forms = Form.objects.filter(created_by = request.user)
-    hosted_events = Event.objects.filter(created_by = request.user)
-
-    # Create an empty queryset for the 'Event' model (or any other model)
-    invited_events_responses = request.user.accepted_events.all()
-    invited_forms_responses = request.user.accepted_forms.all()
-    accepted_teams = request.user.accepted_teams.all() 
-    print(accepted_teams)
-    created_teams = request.user.created_teams.all()
-
-
-
-    #NOTIFICATIONS
-    event_notifications = Notification.get_unread_notifications(request.user)
-    form_notifications = Form_Notifications.get_unread_notifications(request.user)
-    team_notifications = Team_Notifications.get_unread_notifications(request.user)
- 
-    # Passing the grouped forms to the template
-    context = {
-        'crated_forms': created_forms,
-        'invited_forms_responses': invited_forms_responses,
-        'hosted_events': hosted_events,
-        'invited_events_responses': invited_events_responses,
-        'opportunity_types': opporttunity_type,
-        'form_notifications': form_notifications,
-        'team_notifications': team_notifications,
-        'event_notifications': event_notifications,
-        'accepted_teams': accepted_teams,
-        'created_teams': created_teams,
-        
-    }
-    return render(request, 'event/view_forms.html', context)
-    # return HttpResponse("Trying ....")
-
-
-def create_event(request):
+def create_event(request):   
     event_no = request.GET.get('event_no', None) 
     if not event_no:
         event_no = 1
@@ -72,7 +30,7 @@ def create_event(request):
             form = form.save(user = request.user)
             print(form.id)
             return redirect( 'event:event_registration_details', response_id=form.id)
-            return HttpResponse("Success")
+            return HttpResponse("Success")  
         else:
             return HttpResponse("Failed")
     else:
@@ -80,7 +38,28 @@ def create_event(request):
 
     return render(request, 'event/create_event.html', {'form': form ,'event_no': event_no})
 
- 
+from django.shortcuts import get_object_or_404
+
+def edit_event(request, event_id):   
+    # Retrieve the event instance to edit
+    event = get_object_or_404(Event, id=event_id)
+
+    if request.method == 'POST':
+        # Populate the form with POST data and files
+        form = EventCreateForm(request.POST, request.FILES, instance=event)
+        if form.is_valid():
+            form = form.save(user=request.user)  # Save the changes
+            print(form.id)
+            return redirect('event:event_registration_details', response_id=form.id)
+        # else:
+        #     return HttpResponse("Failed to edit the event" )
+    else:
+        # Populate the form with the event instance
+        form = EventCreateForm(instance=event)
+
+    return render(request, 'event/create_event.html', {'form': form, 'event': event})
+
+
 def get_sub_type_choices(request):
     opportunity_type = request.GET.get('opportunity_type', None)
     if opportunity_type == "General and case competition":
@@ -97,175 +76,45 @@ def get_sub_type_choices(request):
     print("Data sent succesfullyyyy")
     return JsonResponse(data, safe=False)
 
-def update_notification(request):
-    notification_id = request.GET.get('notificationId', None)
-    action = request.GET.get('action', None)
-    
-    try:
-        notification = get_object_or_404(Notification,id = notification_id)
-        if action == "accept":
-            notification.perform_action(True)
-        elif action == "reject":
-            notification.perform_action(False)
-
-        return JsonResponse({'status': 'success', 'message': 'Notification updated successfully'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
-
-
-def view_event(request, response_id):
+def view_event(request, response_id):             ##Condition checked for users and public
     # Get the Event object using the provided response_id
-    response = get_object_or_404(Event, id=response_id)
+    event = get_object_or_404(Event, id=response_id)
     
-    related_objects = response.event_registration_details.all()
-    if related_objects :
-        for detail in related_objects:
-            registration = detail
-            print("Invited Users :", registration.invited_users.all())
+    if event.Registration_detail:
+        registration = event.Registration_detail
+
     else:
-        registration = None
+        related_objects = event.event_registration_details.all()
+        if related_objects :
+            registration = related_objects[0]
+            event.Registration_detail = registration
+            event.save()
+
+        else:
+            registration = None
     try:
         is_invited = (request.user in registration.accepted_users.all())
     except:
         is_invited = False
 
-    if (response.created_by == request.user) or (is_invited):  
+    if (event.created_by == request.user) or (is_invited) or event.is_public() :
         context = {
-            'response': response,
+            'response': event,
             'response_id': response_id,
             'registration' :registration,
             'user' : request.user,
         }
-        i = registration.accepted_users.all()[0]
-        print(i)
-        for teams in i.accepted_teams.all():
-            print(teams.team_name)
-        return render(request, 'event/response_detail.html', context)
+
+        return render(request, 'event/view_event.html', context)
     else:
         return HttpResponseForbidden("You are not authorized to view this event.")
 
     # Pass the Event object to the template for rendering
-    
+
 # from django.shortcuts import render
 # from django.core.serializers.json import DjangoJSONEncoder
 # import json
-
-def event_registration_details(request ,response_id):
-    for user in User.objects.all():
-        print(user.id , user.username)
-    all_clubs = []
-
-    user_in_clubs=ClubMember.objects.filter(user=request.user)
-
-    for club in user_in_clubs:
-        club_detail = ClubDetails.objects.filter(club_pk=club.club.club_pk, branch_pk=club.club.branch_pk).first()
-        all_clubs.append(club_detail)
-
-    
-    if request.method == 'POST':
-        registration_form = RegistrationDetailsForm(request.POST, response_id=response_id, all_clubs = all_clubs)
-        if registration_form.is_valid():
-            invited_users = registration_form.cleaned_data.get("invited_users",None)
-            all_clubs = registration_form.cleaned_data.get('invited_club', None)
-            registration_form = registration_form.save()
-
-            for club in all_clubs:
-                for user in ClubDetails.get_members(club):
-                    user = user.user
-                    if Notification.get_rejectednotification(request.user, user , registration_form) or ( not Notification.get_notification(request.user, user , registration_form)):
-                        notification1 = Notification.create_notification(
-                        user=user,
-                        title="Approve Request",
-                        message=f"This is an request to join {registration_form.event.opportunity_title} \n Hosted by {registration_form.event.created_by}",
-                        notification_type=Notification.REQUEST,
-                        sent_from = request.user,
-                        event = registration_form
-                        )
-                        if notification1 :
-                            print("notification created for:", user , notification1.id)
-                    else:
-                        print("notification already exists for:", user)
-                        
-            for user in invited_users:
-                if Notification.get_rejectednotification(request.user, user , registration_form) or ( not Notification.get_notification(request.user, user , registration_form)):
-                    notification1 = Notification.create_notification(
-                    user=user,
-                    title="Approve Request",
-                    message=f"This is an request to join {registration_form.event.opportunity_title} \n Hosted by {registration_form.event.created_by}",
-                    notification_type=Notification.REQUEST,
-                    sent_from = request.user,
-                    event = registration_form
-                    )
-                    if notification1 :
-                        print("notification created for:", user , notification1.id)
-                else:
-                    print("notification already exists for:", user)
-
-
-            return redirect('event:main_view')  # Redirect after saving
-    else:
-        registration_form = RegistrationDetailsForm( response_id = response_id ,  all_clubs = all_clubs)
-
-    return render(request, 'event/create_registration.html', {'registration_form': registration_form })
-
-def edit_registrationdetails(request ,registration_id):
-
-    print(" yupp..............................................")
-    registration = get_object_or_404(Registration_details, pk=registration_id)
-
-    if request.user == registration.event.created_by:
-        if request.method == "POST":
-            # Bind the form to the POST data
-            form = RegistrationDetailsForm(request.POST, instance=registration)
-            if form.is_valid():
-                all_clubs = form.cleaned_data.get('invited_club', None)
-
-                form = form.save()  # Save changes to the object
-                invited_users =form.invited_users.all()
-                print("Invited users",invited_users)
-                for club in all_clubs:
-                    for user in ClubDetails.get_members(club):
-                        user = user.user
-                        if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
-                            notification1 = Notification.create_notification(
-                            user=user,
-                            title="Approve Request",
-                            message=f"This is an request to join {form.event.opportunity_title} \n Hosted by {form.event.created_by}",
-                            notification_type=Notification.REQUEST,
-                            sent_from = request.user,
-                            event = registration
-                            )
-                            if notification1 :
-                                print("notification created for:", user , notification1.id)
-                        else:
-                            print("notification already exists for:", user)
-
-                for user in invited_users:
-                    if Notification.get_rejectednotification(request.user, user , registration) or ( not Notification.get_notification(request.user, user , registration)):
-                        notification1 = Notification.create_notification(
-                        user=user,
-                        title="Approve Request",
-                        message=f"This is an request to join {form.event.opportunity_title} \n Hosted by {form.event.created_by}",
-                        notification_type=Notification.REQUEST,
-                        sent_from = request.user,
-                        event = registration
-                        )
-                        if notification1 :
-                            print("notification created for:", user , notification1.id)
-                    else:
-                        print("notification already exists for:", user)
-
-                return redirect('event:view_event', response_id = registration.event.id)  # Replace with your success page
-        else:
-            # Prepopulate the form with the object's data
-            form = RegistrationDetailsForm(instance=registration)
-
-        return render(request, 'event/create_registration.html', {'registration_form': form, 'all_clubs_members': None})
-    else:
-        print(request.user ,  registration.event.created_by)
-        return HttpResponseForbidden("You are not authorized to edit this .")
-
-
+ 
 # views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Timeline
@@ -273,91 +122,55 @@ from .forms import TimelineFormSet
 
 
 # views.py
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Timeline
-from .forms import TimelineForm
-
-def timeline_list(request, response_id):
-    timelines = Timeline.objects.filter(response_id=response_id).order_by('date')
-    return render(request, 'event/timeline_list.html', {'timelines': timelines})
-
-def timeline_edit(request, pk):
-    timeline = get_object_or_404(Timeline, pk=pk)
-    if request.method == 'POST':
-        form = TimelineForm(request.POST, instance=timeline)
-        if form.is_valid():
-            form.save()
-            return redirect('event:timeline_list', response_id=timeline.response_id)
-    else:
-        form = TimelineForm(instance=timeline)
-    return render(request, 'event/timeline_form.html', {'form': form})
-
-def timeline_create(request, response_id):
-    response = get_object_or_404(Event, id=response_id, created_by=request.user)
-    timelines = Timeline.timeline( response )
-    context = {
-        'timelines': timelines,
-    }
-
-    if request.method == 'POST':
-        num_questions = len([key for key in request.POST if key.startswith("date_")])
-        print(num_questions)
-        # for i in range(num_questions):
-        i=0
-        num = 0 
-        while (num < num_questions):
-            timeline_id = request.POST.get(f'timeline_id{i}')
-            timeline_date = request.POST.get(f'date_{i}')
-            # timeline_date = localtime(timeline_date)    
-            timeline_event = request.POST.get(f'event_{i}')
-            if timeline_date:
-                num+=1
-                i+=1
-            else:
-                i+=1
-                continue
-
-
-            if timeline_id:
-                timeline = Timeline.objects.get(id=timeline_id , response = response)
-                timeline.date = timeline_date
-                timeline.event = timeline_event
-            else:
-                timeline = Timeline(date=timeline_date, event=timeline_event, response=response)
-            print(timeline_id,timeline_date,timeline_event)
-            timeline.save()
-
-            
-        return redirect('event:timeline_list', response_id=response_id)
-
-
-    return render(request, 'event/timelines_create_edit.html', context)
-
-def timeline_delete(request, pk):
-    print(f"Deleting timeline with ID: {pk}")
-    user_id = request.GET.get('user_id', None)
-    timeline = get_object_or_404(Timeline, pk=pk)
-    response_id = timeline.response_id
-    timeline.delete()
-    if user_id:
-        return JsonResponse({"message": "Timeline deleted successfully."}, status=200)
-        pass
-    else:
-        return redirect('event:timeline_list', response_id=response_id)
-
+from datetime import datetime
 
 
 ###To be done tomorrow
 def register(request ,response_id):
     event = get_object_or_404(Event, pk = response_id)
-    team = Team.objects.filter(event = event, )
+    registration = event.Registration_detail
+    from django.utils.timezone import now
+
+    if now() < registration.registration_end or now() > registration.registration_start:
+        event.add_members(request.user)
+        print(now() < registration.registration_end)
+        print(now() > registration.registration_start)
+        print(now())
+        print(datetime.now())
+
+
+        
+    if request.user in registration.accepted_users.all():
+        if not event.user_details_form:
+            event.user_details_form = create_default_form(event.created_by)
+            event.save()
+        if not event.user_details_form.responses.filter(submitted_by  = request.user):
+            base_url = reverse('my_forms:fill_form', kwargs={'form_id': event.user_details_form.id})
+            # Add query parameters for present_page
+            url_with_query = f"{base_url}?is_event_personal_details={response_id}"
+            return redirect(url_with_query)
+        for team in event.teams.all():
+            if request.user in team.accepted_users.all():
+                return redirect('event:edit_register' , team_id = team.id)
+        else:
+            return redirect('event:create_teams' , response_id = response_id)
+
+def create_teams(request , response_id):
+    team = None
+    event = get_object_or_404(Event , pk=response_id)
+    form = get_object_or_404(Form, id=event.user_details_form.id)
+    
+    if team:
+        responses = form.responses.filter(submitted_by__in=team.accepted_users.all())
+    else:
+        responses = form.responses.filter(submitted_by=request.user)
+
     if request.method == 'POST':
         team_form = TeamForm(request.POST , event_id = response_id , leader = request.user)
         if team_form.is_valid():
             invited_users = team_form.cleaned_data.get("invited_users",None)
-            # all_clubs = team_form.cleaned_data.get('invited_club', None)
+            all_clubs = team_form.cleaned_data.get('invited_club', None)
             team_form = team_form.save()
-
 
             for user in invited_users:
                 if Team_Notifications.get_rejectednotification(request.user, user , team_form) or ( not Team_Notifications.get_notification(request.user, user , team_form)):
@@ -374,49 +187,100 @@ def register(request ,response_id):
                 else:
                     print("notification already exists for:", user)
 
+        return redirect('event:view_event' , response_id = response_id)  # Redirect after saving
+    team_form = TeamForm(event_id = response_id , leader = request.user)
+    # for response in responses:
+    #     if response.submitted_by not in 
+    return render(request, 'event/registration.html' , {
+        "team_form": team_form , 
+        'form': form, 
+        'responses': responses,
+        'event' : event,
+        })
 
-            return redirect('event:main_view')  # Redirect after saving
-    form = TeamForm(event_id = response_id , leader = request.user)
-
-    return render(request, 'event/registration.html' , {"form": form })
-
-from django.shortcuts import render, get_object_or_404, redirect
 
 def edit_register(request, team_id):
     team = get_object_or_404(Team, pk=team_id)
-    
+    event_id = team.event.id
     # Check if the current user is the team leader
-    if request.user != team.leader:
+    if request.user not in team.accepted_users.all(): 
         return redirect('event:main_view')  # Redirect if unauthorized
 
     if request.method == 'POST':
-        team_form = TeamForm(request.POST, instance=team, event_id=team.event.id, leader=request.user)
-        
-        if team_form.is_valid():
-            invited_users = team_form.cleaned_data.get("invited_users", None)
-            team_form.save()
-            
-            # Update notifications for invited users
-            for user in invited_users:
-                if Team_Notifications.get_rejectednotification(request.user, user, team) or (
-                    not Team_Notifications.get_notification(request.user, user, team)):
-                    notification = Team_Notifications.create_notification(
-                        user=user,
-                        title="Approve Request",
-                        message=f"This is a request to join the team {team.team_name}\nHosted by {team.leader}",
-                        notification_type=Team_Notifications.REQUEST,
-                        sent_from=request.user,
-                        team=team
-                    )
-                    if notification:
-                        print("Notification created for:", user, notification.id)
-                else:
-                    print("Notification already exists for:", user)
+        team_form = TeamForm(request.POST, instance=team, event_id=event_id, leader=request.user)
+        leave_team = request.POST.get("leave_team", "false") == "true"
+        delete_team = request.POST.get("delete_team", "false") == "true"
 
-            return redirect('event:main_view')  # Redirect after saving
+        if delete_team :
+            team.delete()
+            return redirect('event:view_event' , response_id = event_id)  # Redirect after deletion
+
+        if not leave_team:
+            if (request.POST.get("personal_details", "false") == "true"):
+                base_url = reverse('my_forms:fill_form', kwargs={'form_id': team.event.user_details_form.id})
+                # Add query parameters for present_page
+                url_with_query = f"{base_url}?is_event_personal_details={event_id}"
+                return redirect(url_with_query)
+
+            if team_form.is_valid():
+                invited_users = team_form.cleaned_data.get("invited_users", None)
+                team_form.save()
+                
+                # Update notifications for invited users
+                for user in invited_users:
+                    if Team_Notifications.get_rejectednotification(request.user, user, team) or (
+                        not Team_Notifications.get_notification(request.user, user, team)):
+                        notification = Team_Notifications.create_notification(
+                            user=user,
+                            title="Approve Request",
+                            message=f"This is a request to join the team {team.team_name}\nHosted by {team.leader}",
+                            notification_type=Team_Notifications.REQUEST,
+                            sent_from=request.user,
+                            team=team
+                        )
+                        if notification:
+                            print(Team_Notifications.get_rejectednotification(request.user, user, team) , (not Team_Notifications.get_notification(request.user, user, team)))
+                            print("Notification created for:", user, notification.id)
+                    else:
+                        print("Notification already exists for:", user)
+            
+        else:
+            team.leave_team(request.user)
+
+        return redirect('event:view_event' , response_id = event_id)  # Redirect after saving
 
     else:
         # Pre-fill the form with the existing team data
-        team_form = TeamForm(instance=team, event_id=team.event.id, leader=request.user)
+        team_form = TeamForm(instance=team, event_id=event_id, leader=request.user)
+        event = get_object_or_404(Event , pk=event_id)
+        form = get_object_or_404(Form, id=event.user_details_form.id)
+        if team:
+            responses = form.responses.filter(submitted_by__in=team.accepted_users.all())
+        else:
+            responses = form.responses.filter(submitted_by=request.user)
+    return render(request, 'event/registration.html', {
+        'team_form': team_form, 
+        'team': team, 
+        'edit': True, 
+        'form': form, 
+        'responses': responses,
+        'event': team.event
+        })  
 
-    return render(request, 'event/registration.html', {'form': team_form, 'team': team})
+def create_default_form(user):
+    form = Form.objects.create(
+        title="Personal Details",
+        description="Fill your personal details",
+        form_type="PERSONAL_DETAILS",
+        created_by = user,
+        multiple_submissions = False
+    )
+    question_text = ["Name" , "institution" , "Place"]
+    for question in question_text:
+        Question.objects.create(
+            form=form,
+            text=question,
+            question_type=Question.TEXT,
+        )
+        
+    return form

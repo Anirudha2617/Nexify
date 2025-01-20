@@ -1,0 +1,156 @@
+{% extends "allauth/layouts/main_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load custom_filters %} 
+{% load allauth account %}
+{% block head_title %}
+{% trans "Profile" %}
+{% endblock head_title %}
+{% block stylesheet %}
+<style>
+    body {
+        background-color: #0c1117;
+        color: rgb(213, 211, 211);
+        font-family: 'Arial', sans-serif;
+    }
+
+    h2 {
+        color: white;
+        text-align: center;
+    }
+
+    p {
+        color: rgb(213, 211, 211);
+        font-size: 1.2em;
+        text-align: center;
+    }
+
+    .btn {
+        background-color: #1abc9c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        display: block;
+        margin: 20px auto;
+        text-align: center;
+    }
+
+    .btn:hover {
+        background-color: #16a085;
+    }
+</style>
+
+{% endblock stylesheet %}
+{% block pages %}
+
+<section class="section_profile">
+    <div class="row" style="padding: 1rem;padding-top: 0;">
+        <h1>Submissions for {{ form.title }}</h1>
+        <p>{{ form.description }}</p>
+
+
+        <p>Submitted on: {{ main_response.created_at }}</p>
+        <p>Submitted by: {{ main_response.submitted_by }}</p>
+        <ul>
+            {% for answer in main_response.answers.all %}
+                <li>
+                    <strong>{{ answer.question.text }}:</strong> 
+                    {% if answer.answer_text %}
+                        {{ answer.answer_text }}
+                    {% endif %}
+                    
+                    {% if answer.answer_image %}
+                        <br>
+                        <img src="{{ answer.answer_image.url }}" alt="Uploaded Image" width="200" height="auto">
+                    {% endif %}
+
+                    {% if answer.json_answer %}
+                        <ul>
+                        {% with answer.json_answer|json_loads as answers %}
+                            {% if answers.username %}
+                            Username: {{ answers.username }}
+                            repo_id: {{ answers.repo_id }}
+                            {% else %}
+                            {% for answer in  answers %}
+                                {{answer}}
+                            {% endfor %}
+                            {% endif %}
+
+                        
+                        {% endwith %}
+                        </ul>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+        <hr>
+    
+        {% for response in all_extraresponses %}
+            <ul>
+                {% for answer in response.answers.all %}
+                    <li>
+                        <strong>{{ answer.question.text }}:</strong> 
+                        {% if answer.answer_text %}
+                            {{ answer.answer_text }}
+                        {% endif %}
+                        
+                        {% if answer.answer_image %}
+                            <br>
+                            <img src="{{ answer.answer_image.url }}" alt="Uploaded Image" width="200" height="auto">
+                        {% endif %}
+                        
+                        {% if answer.json_answer %}
+                            <ul>
+                            {% with answer.json_answer|json_loads as answers %}
+                                {% if answers.username %}
+                                    Username: {{ answers.username }}
+                                    repo_id: {{ answers.repo_id }}
+                                {% else %}
+                                    {% for answer in  answers %}
+                                        {{answer}}
+                                    {% endfor %}
+                                {% endif %}
+
+                            
+                            {% endwith %}
+                            </ul>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+            <hr>
+        {% endfor %}
+        {% if registration %}
+            {% for invited_users in registration.invited_users.all %}
+                <li>
+                    {{invited_users}}
+                </li>
+            {% endfor %}
+        {% endif %}
+
+   
+        {% if request.user == main_response.submitted_by %}
+        <a href="{% url 'my_forms:edit_fill_form' response_id %}">edit response</a>
+        <a href="{% url 'my_forms:delete_response' response_id %}">delete</a>
+        {% endif %}
+
+        
+
+    
+        <a href="{% url 'event:main_view' %}">View Form</a>
+        
+        {% if registration %}
+            <a href="{% url 'event:register' response_id %}">Register</a>
+            <a href="{% url 'event:edit_register' registration.id %}">Edit Registration</a>
+        {% endif %}
+
+    </div>
+</section>
+
+
+{% endblock pages %}
+

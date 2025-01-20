@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stages and Timelines</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    .timeline-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-header {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 80px; /* Aligns text properly */
+      border-left: 2px solid #ff7849;
+    }
+
+    .timeline-step {
+      position: relative;
+      margin-bottom: 40px;
+    }
+
+    .timeline-step:last-child {
+      margin-bottom: 0;
+    }
+
+    .timeline-step .date {
+      position: absolute;
+      left: -75px; /* Position date markers to the left */
+      top: 0;
+      width: 60px;
+      height: 60px;
+      background-color: #ff7849;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-radius: 8px; /* Slightly rounded corners */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-step .line {
+      position: absolute;
+      left: -45px; /* Center the line relative to the markers */
+      top: 60px; /* Start directly below the date marker */
+      width: 2px;
+      height: 100%; /* Extend the line to the next step */
+      background-color: #ff7849;
+      z-index: -1; /* Send the line behind content */
+    }
+
+    .timeline-step:last-child .line {
+      display: none; /* Remove the connecting line for the last step */
+    }
+
+    .timeline-step .card {
+      background: #fff;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-step .card h3 {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .timeline-step .card p {
+      font-size: 14px;
+      margin: 0;
+      color: #666;
+    }
+
+    .timeline-step .card .details {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .timeline-step .card .details span {
+      display: block;
+    }
+
+    .timeline-step ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+      list-style: disc;
+    }
+
+    .timeline-step ul li {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    .onstop-logo {
+      float: right;
+      font-size: 12px;
+      color: #ff7849;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="timeline-container">
+    <div class="timeline-header">Stages and Timelines</div>
+    <div class="timeline">
+      <!-- Step 1 -->
+      <div class="timeline-step">
+        <div class="date">5<br>Jan</div>
+        <div class="line"></div>
+        <div class="card">
+          <span class="onstop-logo">On Unstop</span>
+          <h3>Business Model Canvas Submission</h3>
+          <p>Participants must submit a detailed Business Model Canvas outlining their startup's key components. The submissions will be evaluated based on originality, feasibility, and clarity.</p>
+          <div class="details">
+            <span><strong>Start:</strong> 05 Jan 25, 12:00 AM IST</span>
+            <span><strong>End:</strong> 25 Jan 25, 09:08 AM IST</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="timeline-step">
+        <div class="date">5<br>Feb</div>
+        <div class="line"></div>
+        <div class="card">
+          <span class="onstop-logo">On Unstop</span>
+          <h3>Submission Round (via Unstop)</h3>
+          <p><strong>Submission Guidelines:</strong> Participants must submit a detailed pitch deck addressing the following:</p>
+          <ul>
+            <li>Problem Statement: Clearly define the problem you aim to solve.</li>
+            <li>Proposed Solution: Present your innovative solution to address the problem effectively.</li>
+            <li>Market and Consumer Analysis: Provide insights into your target market, consumer behavior, and potential reach.</li>
+            <li>Competitor Analysis: Analyze and outline your competitors in the market.</li>
+            <li>Feasibility Analysis: Highlight the practicality and viability of your solution.</li>
+          </ul>
+          <div class="details">
+            <span><strong>Start:</strong> 05 Feb 25, 05:13 PM IST</span>
+            <span><strong>End:</strong> 25 Feb 25, 05:12 PM IST</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="timeline-step">
+        <div class="date">22<br>Mar</div>
+        <div class="card">
+          <span class="onstop-logo">On Unstop</span>
+          <h3>Online Pitching Round</h3>
+          <p>This will be an online round! Participants will be pitching in front of a panel of judges online.</p>
+          <div class="details">
+            <span><strong>Start:</strong> 22 Mar 25, 05:13 PM IST</span>
+            <span><strong>End:</strong> 23 Mar 25, 05:12 PM IST</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
